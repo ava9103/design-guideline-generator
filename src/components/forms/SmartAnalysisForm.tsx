@@ -2,12 +2,26 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, Globe, Sparkles, CheckCircle, Circle, Plus, X } from 'lucide-react';
+import { 
+  Loader2, 
+  Globe, 
+  Sparkles, 
+  CheckCircle, 
+  Circle, 
+  Plus, 
+  X, 
+  Brain, 
+  Zap,
+  MessageSquare,
+  Wrench,
+  Eye,
+  CheckCircle2
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Card } from '@/components/ui/Card';
-import type { DesignGuideline } from '@/types';
+import type { DesignGuideline, ThoughtStep } from '@/types';
 
 interface Props {
   onGuidelineGenerated: (guideline: DesignGuideline) => void;
@@ -35,7 +49,7 @@ const INDUSTRIES = [
   'その他',
 ];
 
-const ANALYSIS_STEPS = [
+const PIPELINE_STEPS = [
   { id: 'site', name: 'サイト構造分析', description: '対象サイトのコンテンツと構造を解析中...' },
   { id: 'business', name: 'ビジネスモデル推定', description: '業界とビジネスモデルを推定中...' },
   { id: 'persona', name: 'ペルソナ推定', description: 'ターゲットユーザーを推定中...' },
@@ -47,10 +61,12 @@ const ANALYSIS_STEPS = [
 
 export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [useAgentMode, setUseAgentMode] = useState(true); // デフォルトでエージェントモードON
   const [currentStep, setCurrentStep] = useState('');
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [competitorUrls, setCompetitorUrls] = useState<string[]>(['']);
   const [error, setError] = useState<string | null>(null);
+  const [agentThoughts, setAgentThoughts] = useState<ThoughtStep[]>([]);
 
   const {
     register,
@@ -75,7 +91,9 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
   };
 
   const simulateProgress = () => {
-    const steps = ANALYSIS_STEPS.map((s) => s.id);
+    if (useAgentMode) return () => {}; // エージェントモードでは使用しない
+    
+    const steps = PIPELINE_STEPS.map((s) => s.id);
     let index = 0;
 
     const interval = setInterval(() => {
@@ -97,9 +115,10 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
     setIsAnalyzing(true);
     setError(null);
     setCompletedSteps([]);
-    setCurrentStep(ANALYSIS_STEPS[0].id);
+    setAgentThoughts([]);
+    setCurrentStep(useAgentMode ? 'agent_thinking' : PIPELINE_STEPS[0].id);
 
-    // プログレスシミュレーション開始
+    // プログレスシミュレーション開始（パイプラインモードのみ）
     const cleanup = simulateProgress();
 
     try {
@@ -112,6 +131,7 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
           targetAudience: data.targetAudience || undefined,
           competitorUrls: competitorUrls.filter((url) => url.trim() !== ''),
           additionalInfo: data.additionalInfo || undefined,
+          useAgent: useAgentMode,
         }),
       });
 
@@ -121,8 +141,13 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
         throw new Error(result.error || 'ガイドライン生成に失敗しました');
       }
 
+      // エージェントの思考履歴を保存
+      if (result.agentInfo?.thoughtHistory) {
+        setAgentThoughts(result.agentInfo.thoughtHistory);
+      }
+
       // 全ステップ完了
-      setCompletedSteps(ANALYSIS_STEPS.map((s) => s.id));
+      setCompletedSteps(PIPELINE_STEPS.map((s) => s.id));
       setCurrentStep('complete');
 
       // 少し待ってから結果を表示
@@ -137,7 +162,39 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
     }
   };
 
-  const progress = (completedSteps.length / ANALYSIS_STEPS.length) * 100;
+  const progress = useAgentMode 
+    ? (agentThoughts.length / 12) * 100  // エージェントは最大12ステップ
+    : (completedSteps.length / PIPELINE_STEPS.length) * 100;
+
+  const getThoughtIcon = (type: ThoughtStep['type']) => {
+    switch (type) {
+      case 'thought':
+        return <Brain className="text-purple-400" size={16} />;
+      case 'action':
+        return <Wrench className="text-yellow-400" size={16} />;
+      case 'observation':
+        return <Eye className="text-blue-400" size={16} />;
+      case 'final_answer':
+        return <CheckCircle2 className="text-emerald-400" size={16} />;
+      default:
+        return <MessageSquare className="text-slate-400" size={16} />;
+    }
+  };
+
+  const getThoughtLabel = (type: ThoughtStep['type']) => {
+    switch (type) {
+      case 'thought':
+        return '思考';
+      case 'action':
+        return 'アクション';
+      case 'observation':
+        return '観察';
+      case 'final_answer':
+        return '完了';
+      default:
+        return '';
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -156,6 +213,44 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
 
         {!isAnalyzing ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* エージェントモード切り替え */}
+            <div className="p-4 rounded-lg bg-slate-700/50 border border-slate-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${useAgentMode ? 'bg-purple-500/20' : 'bg-slate-600/50'}`}>
+                    {useAgentMode ? (
+                      <Brain className="text-purple-400" size={20} />
+                    ) : (
+                      <Zap className="text-slate-400" size={20} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">
+                      {useAgentMode ? 'エージェントモード' : 'パイプラインモード'}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {useAgentMode 
+                        ? 'AIが自律的に分析計画を立て、必要な情報を収集します'
+                        : '固定の順序で分析を実行します'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUseAgentMode(!useAgentMode)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    useAgentMode ? 'bg-purple-500' : 'bg-slate-600'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                      useAgentMode ? 'translate-x-6' : ''
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
             {/* URL入力 */}
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -265,7 +360,7 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
 
             {/* 送信ボタン */}
             <Button type="submit" className="w-full py-4 text-lg font-bold">
-              🚀 スマート分析を開始
+              {useAgentMode ? '🤖 エージェント分析を開始' : '🚀 スマート分析を開始'}
             </Button>
           </form>
         ) : (
@@ -282,56 +377,128 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
               </div>
             </div>
 
-            <h3 className="text-xl font-bold text-center text-white mb-2">
-              {ANALYSIS_STEPS.find((s) => s.id === currentStep)?.name || '分析中...'}
-            </h3>
-            <p className="text-slate-400 text-center mb-8">
-              {ANALYSIS_STEPS.find((s) => s.id === currentStep)?.description}
-            </p>
+            {useAgentMode ? (
+              /* エージェントモードの表示 */
+              <>
+                <h3 className="text-xl font-bold text-center text-white mb-2">
+                  <Brain className="inline-block mr-2 text-purple-400" size={24} />
+                  エージェントが分析中...
+                </h3>
+                <p className="text-slate-400 text-center mb-6">
+                  AIが自律的に分析計画を立て、情報を収集しています
+                </p>
 
-            {/* プログレスバー */}
-            <div className="w-full bg-slate-700 rounded-full h-2 mb-8">
-              <div
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-
-            {/* ステップ一覧 */}
-            <div className="space-y-3">
-              {ANALYSIS_STEPS.map((step) => {
-                const isCompleted = completedSteps.includes(step.id);
-                const isCurrent = currentStep === step.id;
-
-                return (
+                {/* プログレスバー */}
+                <div className="w-full bg-slate-700 rounded-full h-2 mb-6">
                   <div
-                    key={step.id}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
-                      isCurrent ? 'bg-slate-700/50' : ''
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <CheckCircle className="text-emerald-400 flex-shrink-0" size={20} />
-                    ) : isCurrent ? (
-                      <Loader2 className="animate-spin text-yellow-400 flex-shrink-0" size={20} />
-                    ) : (
-                      <Circle className="text-slate-600 flex-shrink-0" size={20} />
-                    )}
-                    <span
-                      className={
-                        isCompleted
-                          ? 'text-emerald-400'
-                          : isCurrent
-                            ? 'text-yellow-400'
-                            : 'text-slate-500'
-                      }
-                    >
-                      {step.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+                {/* エージェントの思考履歴 */}
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {agentThoughts.length === 0 ? (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-700/50 animate-pulse">
+                      <Brain className="text-purple-400" size={20} />
+                      <span className="text-purple-300">分析計画を立てています...</span>
+                    </div>
+                  ) : (
+                    agentThoughts.map((thought, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-start gap-3 px-4 py-3 rounded-lg ${
+                          thought.type === 'thought' ? 'bg-purple-500/10 border border-purple-500/30' :
+                          thought.type === 'action' ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                          thought.type === 'observation' ? 'bg-blue-500/10 border border-blue-500/30' :
+                          'bg-emerald-500/10 border border-emerald-500/30'
+                        }`}
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getThoughtIcon(thought.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs font-medium ${
+                              thought.type === 'thought' ? 'text-purple-400' :
+                              thought.type === 'action' ? 'text-yellow-400' :
+                              thought.type === 'observation' ? 'text-blue-400' :
+                              'text-emerald-400'
+                            }`}>
+                              {getThoughtLabel(thought.type)}
+                            </span>
+                            {thought.toolCall && (
+                              <span className="text-xs text-slate-500 bg-slate-700 px-2 py-0.5 rounded">
+                                {thought.toolCall.name}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-300 break-words">
+                            {thought.content.length > 150 
+                              ? thought.content.slice(0, 150) + '...' 
+                              : thought.content}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            ) : (
+              /* パイプラインモードの表示 */
+              <>
+                <h3 className="text-xl font-bold text-center text-white mb-2">
+                  {PIPELINE_STEPS.find((s) => s.id === currentStep)?.name || '分析中...'}
+                </h3>
+                <p className="text-slate-400 text-center mb-8">
+                  {PIPELINE_STEPS.find((s) => s.id === currentStep)?.description}
+                </p>
+
+                {/* プログレスバー */}
+                <div className="w-full bg-slate-700 rounded-full h-2 mb-8">
+                  <div
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+                {/* ステップ一覧 */}
+                <div className="space-y-3">
+                  {PIPELINE_STEPS.map((step) => {
+                    const isCompleted = completedSteps.includes(step.id);
+                    const isCurrent = currentStep === step.id;
+
+                    return (
+                      <div
+                        key={step.id}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                          isCurrent ? 'bg-slate-700/50' : ''
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle className="text-emerald-400 flex-shrink-0" size={20} />
+                        ) : isCurrent ? (
+                          <Loader2 className="animate-spin text-yellow-400 flex-shrink-0" size={20} />
+                        ) : (
+                          <Circle className="text-slate-600 flex-shrink-0" size={20} />
+                        )}
+                        <span
+                          className={
+                            isCompleted
+                              ? 'text-emerald-400'
+                              : isCurrent
+                                ? 'text-yellow-400'
+                                : 'text-slate-500'
+                          }
+                        >
+                          {step.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
       </Card>
