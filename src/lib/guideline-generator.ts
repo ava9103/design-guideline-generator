@@ -6,6 +6,8 @@ import {
   LAYER3_GUIDELINES_PROMPT,
   REFERENCES_PROMPT,
 } from './prompts/system';
+import { getIndustryPreset, formatPresetForPrompt } from './knowledge';
+import { checkGuidelineConsistency, formatWarningsForDisplay } from './validation';
 import type {
   AnalysisContext,
   Layer1Goals,
@@ -116,17 +118,25 @@ async function generateLayer3Guidelines(
     )
     .join('\n') || 'なし';
 
+  // 業種別プリセットを取得
+  const industry = businessModel?.industry || context.industry || '';
+  const industryPreset = getIndustryPreset(industry);
+  const industryPresetText = industryPreset
+    ? formatPresetForPrompt(industryPreset)
+    : '【業種別プリセット】\n該当する業種プリセットはありません。一般的なベストプラクティスに従ってください。';
+
   const prompt = LAYER3_GUIDELINES_PROMPT
     .replace('{conceptStatement}', layer2Concept.statement)
     .replace('{conceptPrinciples}', layer2Concept.principles.map((p) => p.title).join('、'))
     .replace('{positioning}', layer2Concept.positioning)
     .replace('{impressionKeywords}', layer1Goals.impressionKeywords.join(' / '))
-    .replace('{industry}', businessModel?.industry || context.industry || '不明')
+    .replace('{industry}', industry || '不明')
     .replace('{targetAudience}', persona?.primary.name || context.targetAudience || '不明')
-    .replace('{competitorDesigns}', competitorDesigns);
+    .replace('{competitorDesigns}', competitorDesigns)
+    .replace('{industryPreset}', industryPresetText);
 
   const response = await callClaude(prompt, {
-    maxTokens: 4000,
+    maxTokens: 5000, // 出力が増えたので増加
     systemPrompt: SYSTEM_PROMPT,
   });
 
@@ -174,6 +184,16 @@ async function generateReferences(
   return result;
 }
 
+export interface GuidelineGenerationResult {
+  guideline: DesignGuideline;
+  consistencyCheck: {
+    isConsistent: boolean;
+    score: number;
+    summary: string;
+    warnings: string;
+  };
+}
+
 // デザインガイドラインを生成（メイン関数）
 export async function generateDesignGuideline(
   context: AnalysisContext,
@@ -181,10 +201,11 @@ export async function generateDesignGuideline(
   onProgress?: GenerationProgressCallback
 ): Promise<DesignGuideline> {
   const steps = [
-    { name: 'デザインゴール生成', progress: 25 },
-    { name: 'デザインコンセプト生成', progress: 50 },
-    { name: 'デザインガイドライン生成', progress: 75 },
-    { name: '参考実例生成', progress: 100 },
+    { name: 'デザインゴール生成', progress: 20 },
+    { name: 'デザインコンセプト生成', progress: 40 },
+    { name: 'デザインガイドライン生成', progress: 60 },
+    { name: '参考実例生成', progress: 80 },
+    { name: '一貫性チェック', progress: 100 },
   ];
 
   // 第1層：デザインゴール
@@ -205,6 +226,18 @@ export async function generateDesignGuideline(
   // 参考実例
   onProgress?.({ currentStep: steps[3].name, progress: steps[2].progress });
   const references = await generateReferences(context, layer1Goals, layer2Concept, worksData);
+  onProgress?.({ currentStep: steps[3].name, progress: steps[3].progress });
+
+  // 一貫性チェック
+  onProgress?.({ currentStep: steps[4].name, progress: steps[3].progress });
+  const consistencyResult = checkGuidelineConsistency(layer3Guidelines);
+  
+  // 警告があればコンソールに出力（デバッグ用）
+  if (consistencyResult.warnings.length > 0) {
+    console.log('Consistency Check Results:');
+    console.log(formatWarningsForDisplay(consistencyResult.warnings));
+  }
+  
   onProgress?.({ currentStep: '完了', progress: 100 });
 
   // ガイドラインオブジェクトを構築
@@ -227,4 +260,25 @@ export async function generateDesignGuideline(
   };
 
   return guideline;
+}
+
+// 一貫性チェック結果付きでガイドラインを生成
+export async function generateDesignGuidelineWithValidation(
+  context: AnalysisContext,
+  worksData?: string,
+  onProgress?: GenerationProgressCallback
+): Promise<GuidelineGenerationResult> {
+  const guideline = await generateDesignGuideline(context, worksData, onProgress);
+  
+  const consistencyResult = checkGuidelineConsistency(guideline.layer3Guidelines);
+  
+  return {
+    guideline,
+    consistencyCheck: {
+      isConsistent: consistencyResult.isConsistent,
+      score: consistencyResult.score,
+      summary: consistencyResult.summary,
+      warnings: formatWarningsForDisplay(consistencyResult.warnings),
+    },
+  };
 }

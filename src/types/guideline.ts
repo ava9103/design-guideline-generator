@@ -130,6 +130,23 @@ export interface TypographyGuideline {
     lineHeight: string;
     usage: string;
   }[];
+
+  // ジャンプ率（視覚的強弱）設定
+  jumpRatio?: {
+    level: 'high' | 'medium' | 'low';
+    h1ToBody: number; // H1と本文のサイズ比
+    h2ToBody: number; // H2と本文のサイズ比
+    description: string;
+    rationale: string; // なぜこのジャンプ率を選んだか
+  };
+
+  // 業種別フォント推奨理由
+  industryContext?: {
+    industry: string;
+    fontStyle: 'mincho' | 'gothic' | 'maru-gothic' | 'mixed';
+    psychologicalEffect: string;
+    cvrImpact: string;
+  };
 }
 
 // カラーガイドライン
@@ -164,6 +181,18 @@ export interface ColorGuideline {
     tertiary: string;
     inverse: string;
   };
+
+  // エモーショナルカラー（心理的刷り込み用）
+  emotionalColor?: {
+    name: string;
+    hex: string;
+    purpose: string;
+    mechanism: string;
+    usage: string[];
+  };
+
+  // カラーシステム全体の設計根拠
+  colorSystemRationale?: string;
 
   sectionColors?: {
     section: string;
@@ -245,6 +274,7 @@ export interface UIGuideline {
       padding: string;
       fontSize: string;
       hoverEffect: string;
+      psychologicalRationale?: string; // このCTAデザインが行動を促す理由
     };
     secondary: {
       backgroundColor: string;
@@ -255,6 +285,13 @@ export interface UIGuideline {
       hoverEffect: string;
     };
   };
+
+  // CTA改善提案
+  ctaRecommendations?: {
+    recommendation: string;
+    evidence: string;
+    expectedImpact: string;
+  }[];
 
   forms?: {
     inputStyle: string;

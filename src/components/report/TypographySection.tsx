@@ -173,6 +173,85 @@ export function TypographySection({ typography }: Props) {
           </table>
         </div>
       </div>
+
+      {/* ジャンプ率 */}
+      {typography.jumpRatio && (
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4">
+            ジャンプ率（視覚的強弱）
+          </h3>
+          <div className="p-4 rounded-lg bg-slate-700/50">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-sm">レベル:</span>
+                <span
+                  className={`px-2 py-1 rounded text-sm font-medium ${
+                    typography.jumpRatio.level === 'high'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : typography.jumpRatio.level === 'medium'
+                      ? 'bg-yellow-500/20 text-yellow-400'
+                      : 'bg-slate-500/20 text-slate-400'
+                  }`}
+                >
+                  {typography.jumpRatio.level === 'high'
+                    ? '高'
+                    : typography.jumpRatio.level === 'medium'
+                    ? '中'
+                    : '低'}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-slate-400">
+                  H1/本文: <span className="text-white font-medium">{typography.jumpRatio.h1ToBody}:1</span>
+                </span>
+                <span className="text-slate-400">
+                  H2/本文: <span className="text-white font-medium">{typography.jumpRatio.h2ToBody}:1</span>
+                </span>
+              </div>
+            </div>
+            <p className="text-sm text-slate-300 mb-2">{typography.jumpRatio.description}</p>
+            <p className="text-sm text-slate-400 italic">{typography.jumpRatio.rationale}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 業種別コンテキスト */}
+      {typography.industryContext && (
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4">
+            業種別フォント選定根拠
+          </h3>
+          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400">
+                {typography.industryContext.industry}
+              </span>
+              <span className="text-sm text-slate-400">
+                フォントスタイル:{' '}
+                <span className="text-white">
+                  {typography.industryContext.fontStyle === 'mincho'
+                    ? '明朝体系'
+                    : typography.industryContext.fontStyle === 'gothic'
+                    ? 'ゴシック体系'
+                    : typography.industryContext.fontStyle === 'maru-gothic'
+                    ? '丸ゴシック系'
+                    : 'ミックス'}
+                </span>
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <span className="text-xs text-slate-400">心理効果:</span>
+                <p className="text-sm text-slate-300">{typography.industryContext.psychologicalEffect}</p>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400">CVRへの影響:</span>
+                <p className="text-sm text-slate-300">{typography.industryContext.cvrImpact}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

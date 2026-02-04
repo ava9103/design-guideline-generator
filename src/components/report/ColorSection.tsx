@@ -81,6 +81,72 @@ export function ColorSection({ color }: Props) {
         </div>
       </div>
 
+      {/* エモーショナルカラー */}
+      {color.emotionalColor && (
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4">
+            エモーショナルカラー
+            <span className="ml-2 text-sm font-normal text-slate-400">
+              （心理的刷り込み）
+            </span>
+          </h3>
+          <div className="rounded-lg overflow-hidden bg-slate-700/50">
+            <div
+              className="h-16 flex items-center justify-center"
+              style={{ backgroundColor: color.emotionalColor.hex }}
+            >
+              <span className="text-white font-mono text-sm bg-black/30 px-2 py-1 rounded">
+                {color.emotionalColor.hex}
+              </span>
+            </div>
+            <div className="p-4">
+              <h4 className="text-lg font-bold text-white mb-2">
+                {color.emotionalColor.name}
+              </h4>
+              <div className="space-y-2">
+                <div>
+                  <span className="text-xs text-slate-400">目的:</span>
+                  <p className="text-sm text-slate-300">{color.emotionalColor.purpose}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-400">心理メカニズム:</span>
+                  <p className="text-sm text-slate-300">{color.emotionalColor.mechanism}</p>
+                </div>
+                {color.emotionalColor.usage && color.emotionalColor.usage.length > 0 && (
+                  <div>
+                    <span className="text-xs text-slate-400">使用箇所:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {color.emotionalColor.usage.map((u, i) => (
+                        <span
+                          key={i}
+                          className="text-xs px-2 py-0.5 rounded bg-slate-600 text-slate-300"
+                        >
+                          {u}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* カラーシステム設計根拠 */}
+      {color.colorSystemRationale && (
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4">
+            カラーシステム設計根拠
+          </h3>
+          <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <p className="text-sm text-slate-300 leading-relaxed">
+              {color.colorSystemRationale}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* テキストカラー */}
       <div>
         <h3 className="text-lg font-semibold text-white mb-4">テキストカラー</h3>
