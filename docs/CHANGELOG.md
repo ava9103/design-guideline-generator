@@ -4,6 +4,69 @@
 
 ---
 
+## [2026-02-05] コードクリーンアップ・デプロイ準備
+
+### 概要
+
+本番公開に向けた準備として、未使用の依存関係とコードを削除し、プロジェクトを軽量化。既存の型エラーも修正し、ビルドが正常に通る状態に整備しました。
+
+---
+
+### 🧹 未使用npm依存関係の削除
+
+**ユーザーへの価値**
+- プロジェクトサイズの削減（約1,300行削減）
+- ビルド時間の短縮
+- デプロイ時のパッケージサイズ削減
+
+**削除したパッケージ（8個）**
+- `next-auth` - 認証機能未実装のため
+- `groq-sdk` - 使用されていないAIプロバイダー
+- `@huggingface/inference` - 使用されていないAIプロバイダー
+- `html2canvas` - 使用されていない
+- `puppeteer-core` - Firecrawl/Cheerioに置き換え済み
+- `@sparticuz/chromium` - 同上
+- `marked` - 使用されていない
+- `@types/marked` - 同上
+
+---
+
+### 🗑️ 未使用コードの削除
+
+**ユーザーへの価値**
+- コードベースのシンプル化
+- 保守性の向上
+
+**削除したファイル**
+- `src/app/api/generate/route.ts` - ストリーミング版（`/api/generate/stream`）のみ使用されていたため
+
+---
+
+### 🔧 既存の型エラー修正
+
+**修正内容**
+- `src/lib/agent/prompts.ts` - `formatContext`関数の型を`AgentContext`に変更
+- `src/lib/export/pdf-generator.ts` - オプショナルな`reason`プロパティにフォールバック値を追加
+- `src/lib/export/pptx-generator.ts` - テーブルセルを正しいオブジェクト形式に変更（pptxgenjs API対応）
+- `src/lib/firecrawl.ts` - Firecrawl v4+の新しいAPI形式に対応（`scrapeUrl` → `scrape`）
+- `src/types/index.ts` - `CompetitorAnalysis`の重複エクスポートを解決
+
+---
+
+### 🚀 デプロイオプションの検討
+
+**調査結果**
+- **Vercel（推奨）**: Next.jsの公式プラットフォーム、設定最小
+- **Render**: Docker対応、時間制限なし
+- **Fly.io**: グローバルエッジ、無料枠あり
+
+**必要な設定**
+- `next.config.ts`のサーバーレス対応設定
+- 環境変数の設定（AI API、Supabase等）
+- GitHubリポジトリ連携
+
+---
+
 ## [2025-02-05] UX改善・安定性向上
 
 ### 概要
@@ -299,6 +362,7 @@ LP Design Guideline Generator の初期バージョンをリリース。
 
 | 日付 | バージョン | 主な変更 |
 |------|------------|----------|
+| 2026-02-05 | 0.5.0 | コードクリーンアップ・デプロイ準備（未使用依存関係削除、型エラー修正） |
 | 2025-02-05 | 0.4.1 | UX改善・安定性向上（エラー耐性、進捗表示シンプル化、業界カテゴリ拡充） |
 | 2025-02-05 | 0.4.0 | 大規模機能改善（SSE、Supabase、競合比較、PDF/PPTX出力） |
 | 2025-02-04 | 0.3.0 | CVRナレッジベース追加 |
