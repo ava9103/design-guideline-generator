@@ -109,7 +109,7 @@ export async function exportToPDF(guideline: DesignGuideline): Promise<Blob> {
     doc.text(`• ${point.title}`, margin + 5, currentY);
     currentY += 5;
     doc.setTextColor(COLORS.textSecondary);
-    const reasonLines = doc.splitTextToSize(point.reason, contentWidth - 10);
+    const reasonLines = doc.splitTextToSize(point.reason || '', contentWidth - 10);
     doc.text(reasonLines, margin + 10, currentY);
     currentY += reasonLines.length * 4 + 5;
   }
@@ -149,7 +149,7 @@ export async function exportToPDF(guideline: DesignGuideline): Promise<Blob> {
     doc.text(`• ${principle.title}`, margin + 5, currentY);
     currentY += 5;
     doc.setTextColor(COLORS.textSecondary);
-    const reasonLines = doc.splitTextToSize(principle.reason, contentWidth - 10);
+    const reasonLines = doc.splitTextToSize(principle.reason || '', contentWidth - 10);
     doc.text(reasonLines, margin + 10, currentY);
     currentY += reasonLines.length * 4 + 5;
   }

@@ -1,4 +1,5 @@
 import { getToolsForLLM } from './tools';
+import type { AgentContext } from '@/types';
 
 export const AGENT_SYSTEM_PROMPT = `あなたはデザインガイドライン生成のためのAIエージェントです。
 与えられた目標を達成するために、利用可能なツールを使って自律的に情報収集と分析を行います。
@@ -95,7 +96,7 @@ export function formatThoughtHistory(
     .join('\n');
 }
 
-export function formatContext(context: Record<string, unknown>): string {
+export function formatContext(context: AgentContext): string {
   const parts: string[] = [];
 
   if (context.targetUrl) {
@@ -111,23 +112,19 @@ export function formatContext(context: Record<string, unknown>): string {
   }
 
   if (context.siteAnalysis) {
-    const site = context.siteAnalysis as { title: string; description: string };
-    parts.push(`サイト分析済み: ${site.title} - ${site.description}`);
+    parts.push(`サイト分析済み: ${context.siteAnalysis.title} - ${context.siteAnalysis.description}`);
   }
 
   if (context.businessModel) {
-    const biz = context.businessModel as { industry: string; serviceType: string };
-    parts.push(`ビジネスモデル推定済み: ${biz.industry}（${biz.serviceType}）`);
+    parts.push(`ビジネスモデル推定済み: ${context.businessModel.industry}（${context.businessModel.serviceType}）`);
   }
 
   if (context.persona) {
-    const persona = context.persona as { primary: { name: string } };
-    parts.push(`ペルソナ推定済み: ${persona.primary.name}`);
+    parts.push(`ペルソナ推定済み: ${context.persona.primary.name}`);
   }
 
   if (context.competitors) {
-    const competitors = context.competitors as Array<{ name: string }>;
-    parts.push(`競合分析済み: ${competitors.map(c => c.name).join('、')}`);
+    parts.push(`競合分析済み: ${context.competitors.map(c => c.name).join('、')}`);
   }
 
   if (context.designTrend) {

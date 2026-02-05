@@ -398,14 +398,17 @@ export async function exportToPPTX(guideline: DesignGuideline): Promise<Blob> {
   });
 
   const sizeData = typography.sizeSystem.slice(0, 5).map((s) => [
-    s.element,
-    s.pc,
-    s.sp,
-    s.lineHeight,
+    { text: s.element },
+    { text: s.pc },
+    { text: s.sp },
+    { text: s.lineHeight },
   ]);
 
   typographySlide.addTable(
-    [['Element', 'PC', 'SP', 'Line Height'], ...sizeData],
+    [
+      [{ text: 'Element' }, { text: 'PC' }, { text: 'SP' }, { text: 'Line Height' }],
+      ...sizeData,
+    ],
     {
       x: 0.5,
       y: 3.9,

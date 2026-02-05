@@ -59,17 +59,12 @@ export async function scrapeUrl(url: string): Promise<FirecrawlScrapeResult> {
   }
   
   try {
-    const result = await client.scrapeUrl(url, {
+    // Firecrawl v4+ uses 'scrape' instead of 'scrapeUrl' and returns Document directly
+    const result = await client.scrape(url, {
       formats: ['markdown', 'html'],
     });
     
-    if (!result.success) {
-      return {
-        success: false,
-        error: result.error || 'Scraping failed',
-      };
-    }
-    
+    // v4+ API returns the document directly, or throws on error
     return {
       success: true,
       markdown: result.markdown,
