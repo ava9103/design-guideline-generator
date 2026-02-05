@@ -1,18 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   Globe, 
   Sparkles, 
   Plus, 
-  X
+  X,
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  File,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Card } from '@/components/ui/Card';
-import type { DesignGuideline } from '@/types';
+import type { DesignGuideline, CompetitorDocument, CompetitorImportMode } from '@/types';
 
 interface Props {
   onGuidelineGenerated: (guideline: DesignGuideline) => void;
@@ -23,6 +28,14 @@ interface FormData {
   industry: string;
   targetAudience: string;
   additionalInfo: string;
+}
+
+interface UploadedFile {
+  id: string;
+  file: File;
+  preview?: string;
+  status: 'pending' | 'uploading' | 'completed' | 'error';
+  error?: string;
 }
 
 const INDUSTRIES = [
@@ -59,10 +72,19 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [realProgress, setRealProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState('');
+  
+  // 競合分析資料アップロード関連
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [competitorImportMode, setCompetitorImportMode] = useState<CompetitorImportMode>('combine_with_auto');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // フェーズ名をシンプルなメッセージに変換
   const getSimplifiedPhase = (phase: string): string => {
     // ツール名やエラーメッセージを含む詳細を隠す
+    if (phase.includes('ファイル') || phase.includes('アップロード') || phase.includes('ドキュメント')) {
+      return 'アップロード資料を解析しています...';
+    }
     if (phase.includes('analyze_site') || phase.includes('サイト分析')) {
       return 'サイトを分析しています...';
     }
@@ -115,6 +137,112 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
     setCompetitorUrls(updated);
   };
 
+  // ファイルアップロード処理
+  const handleFiles = useCallback((files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const allowedTypes = [
+      'image/png', 'image/jpeg', 'image/jpg', 'image/webp',
+      'application/pdf',
+      'text/plain', 'text/markdown',
+    ];
+
+    const newFiles: UploadedFile[] = fileArray
+      .filter(file => {
+        if (!allowedTypes.includes(file.type)) {
+          console.warn(`Unsupported file type: ${file.type}`);
+          return false;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          console.warn(`File too large: ${file.name}`);
+          return false;
+        }
+        return true;
+      })
+      .map(file => {
+        const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const uploadedFile: UploadedFile = {
+          id,
+          file,
+          status: 'pending',
+        };
+
+        // 画像の場合はプレビューを生成
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setUploadedFiles(prev => 
+              prev.map(f => f.id === id ? { ...f, preview: e.target?.result as string } : f)
+            );
+          };
+          reader.readAsDataURL(file);
+        }
+
+        return uploadedFile;
+      });
+
+    setUploadedFiles(prev => [...prev, ...newFiles].slice(0, 10)); // 最大10ファイル
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    handleFiles(e.dataTransfer.files);
+  }, [handleFiles]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const removeFile = useCallback((id: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== id));
+  }, []);
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) return <ImageIcon size={16} />;
+    if (file.type === 'application/pdf') return <FileText size={16} />;
+    return <File size={16} />;
+  };
+
+  // アップロードファイルをCompetitorDocument形式に変換
+  const convertFilesToDocuments = async (): Promise<CompetitorDocument[]> => {
+    const documents: CompetitorDocument[] = [];
+
+    for (const uploadedFile of uploadedFiles) {
+      const file = uploadedFile.file;
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const fileType: 'image' | 'pdf' | 'text' = 
+        file.type.startsWith('image/') ? 'image' :
+        file.type === 'application/pdf' ? 'pdf' : 'text';
+
+      const doc: CompetitorDocument = {
+        id: uploadedFile.id,
+        fileName: file.name,
+        fileType,
+        status: 'pending',
+      };
+
+      if (fileType === 'image') {
+        doc.imageBase64 = buffer.toString('base64');
+      } else if (fileType === 'pdf') {
+        doc.content = buffer.toString('base64');
+      } else {
+        doc.content = buffer.toString('utf-8');
+      }
+
+      documents.push(doc);
+    }
+
+    return documents;
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsAnalyzing(true);
     setError(null);
@@ -122,6 +250,13 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
     setCurrentPhase('開始中...');
 
     try {
+      // アップロードファイルがある場合はドキュメントに変換
+      let competitorDocuments: CompetitorDocument[] | undefined;
+      if (uploadedFiles.length > 0) {
+        setCurrentPhase('ファイルを準備しています...');
+        competitorDocuments = await convertFilesToDocuments();
+      }
+
       // SSEストリーミングを使用
       const response = await fetch('/api/generate/stream', {
         method: 'POST',
@@ -132,6 +267,8 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
           targetAudience: data.targetAudience || undefined,
           competitorUrls: competitorUrls.filter((url) => url.trim() !== ''),
           additionalInfo: data.additionalInfo || undefined,
+          competitorDocuments,
+          competitorImportMode: uploadedFiles.length > 0 ? competitorImportMode : undefined,
           useAgent: true,
         }),
       });
@@ -265,25 +402,29 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
               </p>
             </div>
 
-            {/* 業界選択（任意） */}
+            {/* 業界選択（必須） */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                業界/カテゴリ（任意）
+                業界/カテゴリ <span className="text-red-500">*</span>
               </label>
               <select
-                {...register('industry')}
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-300 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                {...register('industry', {
+                  required: '業界/カテゴリを選択してください',
+                })}
+                className={`w-full px-4 py-3 rounded-lg bg-white border text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                  errors.industry ? 'border-red-500' : 'border-slate-300'
+                }`}
               >
-                <option value="">自動推定する</option>
+                <option value="">選択してください</option>
                 {INDUSTRIES.map((industry) => (
                   <option key={industry} value={industry}>
                     {industry}
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-slate-500">
-                ※ 空欄の場合、AIが自動で業界を推定します
-              </p>
+              {errors.industry && (
+                <p className="mt-1 text-xs text-red-500">{errors.industry.message}</p>
+              )}
             </div>
 
             {/* ターゲット（任意） */}
@@ -333,6 +474,128 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
               <p className="mt-1 text-xs text-slate-500">
                 ※ 空欄の場合、AIが自動で競合LPを検索・分析します
               </p>
+            </div>
+
+            {/* 競合分析資料アップロード（任意） */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                競合分析資料のアップロード（任意）
+              </label>
+              <p className="text-xs text-slate-500 mb-2">
+                すでに作成済みの競合分析資料があればアップロードしてください。スクリーンショット、PDF、テキストファイルに対応しています。
+              </p>
+              
+              {/* ドロップゾーン */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => fileInputRef.current?.click()}
+                className={`
+                  border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                  ${isDragOver 
+                    ? 'border-emerald-500 bg-emerald-50' 
+                    : 'border-slate-300 hover:border-emerald-400 hover:bg-slate-50'
+                  }
+                `}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.md"
+                  onChange={(e) => e.target.files && handleFiles(e.target.files)}
+                  className="hidden"
+                />
+                <Upload size={32} className="mx-auto text-slate-400 mb-2" />
+                <p className="text-sm text-slate-600">
+                  ファイルをドラッグ＆ドロップ、またはクリックして選択
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  PNG, JPG, WebP, PDF, TXT, MD（最大10MB、10ファイルまで）
+                </p>
+              </div>
+
+              {/* アップロード済みファイル一覧 */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {uploadedFiles.map((uploadedFile) => (
+                    <div
+                      key={uploadedFile.id}
+                      className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg"
+                    >
+                      {/* プレビュー or アイコン */}
+                      <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden bg-slate-200 flex items-center justify-center">
+                        {uploadedFile.preview ? (
+                          <img
+                            src={uploadedFile.preview}
+                            alt={uploadedFile.file.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-slate-500">
+                            {getFileIcon(uploadedFile.file)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* ファイル情報 */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-700 truncate">
+                          {uploadedFile.file.name}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {(uploadedFile.file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      
+                      {/* 削除ボタン */}
+                      <button
+                        type="button"
+                        onClick={() => removeFile(uploadedFile.id)}
+                        className="p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-red-500"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* インポートモード選択 */}
+                  <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                    <label className="block text-xs font-medium text-slate-600 mb-2">
+                      競合分析の方法
+                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="importMode"
+                          value="combine_with_auto"
+                          checked={competitorImportMode === 'combine_with_auto'}
+                          onChange={() => setCompetitorImportMode('combine_with_auto')}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span className="text-sm text-slate-700">
+                          アップロード資料 + 自動検出を組み合わせる
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="importMode"
+                          value="manual_only"
+                          checked={competitorImportMode === 'manual_only'}
+                          onChange={() => setCompetitorImportMode('manual_only')}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span className="text-sm text-slate-700">
+                          アップロード資料のみ使用（自動検出をスキップ）
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 追加情報（任意） */}

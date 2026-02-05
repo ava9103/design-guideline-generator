@@ -39,22 +39,6 @@ export function LayoutSection({ layout }: Props) {
             </div>
           </div>
         </div>
-
-        {/* グリッドビジュアライゼーション */}
-        <div className="mt-4 p-4 rounded-lg bg-slate-100 border border-slate-200">
-          <div className="text-xs text-slate-500 mb-2">グリッドプレビュー</div>
-          <div 
-            className="flex gap-1 h-16"
-            style={{ gap: '4px' }}
-          >
-            {Array.from({ length: Math.min(layout.grid.columns, 12) }).map((_, i) => (
-              <div
-                key={i}
-                className="flex-1 bg-emerald-100 border border-emerald-300 rounded"
-              />
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* スペーシング */}

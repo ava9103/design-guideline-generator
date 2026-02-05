@@ -23,11 +23,6 @@ export interface IndustryColorPreset {
     hexExample: string;
     effect: string;
   };
-  emotionalColor?: {
-    color: string;
-    purpose: string;
-    mechanism: string;
-  };
 }
 
 export interface IndustryFontPreset {
@@ -104,11 +99,6 @@ export const INDUSTRY_PRESETS: Record<string, IndustryDesignPreset> = {
         hexExample: '#E67E22',
         effect: '緊張感を回避しつつ行動喚起。赤よりも「前向きな一歩」を促す',
       },
-      emotionalColor: {
-        color: 'soft_green',
-        purpose: '安心・成長のイメージ',
-        mechanism: '「守られている」「増えていく」という無意識の連想を促進',
-      },
     },
     font: {
       heading: {
@@ -176,11 +166,6 @@ export const INDUSTRY_PRESETS: Record<string, IndustryDesignPreset> = {
         hexExample: '#10B981',
         effect: '先進性・成長・ポジティブなアクションを促す',
       },
-      emotionalColor: {
-        color: 'gradient_purple_blue',
-        purpose: 'イノベーション・未来感',
-        mechanism: 'グラデーションによる動的な印象で「進化し続ける」イメージを訴求',
-      },
     },
     font: {
       heading: {
@@ -247,11 +232,6 @@ export const INDUSTRY_PRESETS: Record<string, IndustryDesignPreset> = {
         colorFamily: 'orange/yellow',
         hexExample: '#F59E0B',
         effect: '希望・エネルギー・前向きなアクションを促す',
-      },
-      emotionalColor: {
-        color: 'green_accent',
-        purpose: '成長・達成感',
-        mechanism: '「学んで成長する」プロセスへのポジティブな連想',
       },
     },
     font: {
@@ -376,11 +356,6 @@ export const INDUSTRY_PRESETS: Record<string, IndustryDesignPreset> = {
         colorFamily: 'red/orange',
         hexExample: '#EF4444',
         effect: '購買意欲を刺激、「今すぐ」のアクションを促す',
-      },
-      emotionalColor: {
-        color: 'category_specific',
-        purpose: '商品の世界観を強化',
-        mechanism: '食品→暖色（食欲）、コスメ→ピンク/パープル（美意識）等',
       },
     },
     font: {
@@ -552,12 +527,52 @@ export const INDUSTRY_PRESETS: Record<string, IndustryDesignPreset> = {
 };
 
 /**
+ * フォームの業界選択肢からプリセットキーへの直接マッピング
+ * これにより、ユーザーが選択した業界が確実に正しいプリセットにマッチする
+ */
+const FORM_INDUSTRY_TO_PRESET: Record<string, string> = {
+  // 物販系
+  '美容・健康': 'EC・通販',
+  'ファッション・アクセサリー': 'EC・通販',
+  '食品・飲料': 'EC・通販',
+  '家電・デジタル': 'EC・通販',
+  '生活用品': 'EC・通販',
+  'ホビー・その他物販': 'EC・通販',
+  // サービス系（個人向け）
+  '美容・ヘルスケアサービス': '医療・ヘルスケア',
+  '教育・スクール': '教育・スクール',
+  'エンタメ・サブスク': 'EC・通販',
+  'ライフイベント・冠婚葬祭': '保険・金融',
+  '旅行・レジャー': '教育・スクール',
+  '生活サービス': 'EC・通販',
+  // 高額商材・契約系
+  '金融': '保険・金融',
+  '不動産・住宅': '不動産',
+  '自動車': '不動産',
+  '通信・インターネット回線': 'SaaS・テック',
+  // BtoB・専門サービス
+  '人材・キャリア': '人材・採用',
+  '法律・士業サービス': '保険・金融',
+  'BtoB・IT・SaaS': 'SaaS・テック',
+  '医療・ヘルスケア': '医療・ヘルスケア',
+  'その他専門サービス': 'SaaS・テック',
+};
+
+/**
  * 業種名から最適なプリセットを取得
  */
 export function getIndustryPreset(industry: string): IndustryDesignPreset | null {
   // 完全一致
   if (INDUSTRY_PRESETS[industry]) {
     return INDUSTRY_PRESETS[industry];
+  }
+
+  // フォームの業界選択肢からの直接マッピング（最優先）
+  if (FORM_INDUSTRY_TO_PRESET[industry]) {
+    const presetKey = FORM_INDUSTRY_TO_PRESET[industry];
+    if (INDUSTRY_PRESETS[presetKey]) {
+      return INDUSTRY_PRESETS[presetKey];
+    }
   }
 
   // 部分一致を試みる
@@ -574,34 +589,74 @@ export function getIndustryPreset(industry: string): IndustryDesignPreset | null
     }
   }
 
-  // キーワードマッチング
+  // キーワードマッチング（フォームの業界選択肢を網羅）
   const keywordMap: Record<string, string> = {
+    // 保険・金融
     '保険': '保険・金融',
     '金融': '保険・金融',
     '銀行': '保険・金融',
     '証券': '保険・金融',
+    // SaaS・テック
     'SaaS': 'SaaS・テック',
+    'saas': 'SaaS・テック',
     'IT': 'SaaS・テック',
     'テック': 'SaaS・テック',
     'ソフトウェア': 'SaaS・テック',
     'クラウド': 'SaaS・テック',
+    'BtoB': 'SaaS・テック',
+    'btob': 'SaaS・テック',
+    'B2B': 'SaaS・テック',
+    'b2b': 'SaaS・テック',
+    'デジタル': 'SaaS・テック',
+    '通信': 'SaaS・テック',
+    'インターネット回線': 'SaaS・テック',
+    // 教育・スクール
     '教育': '教育・スクール',
     'スクール': '教育・スクール',
     '塾': '教育・スクール',
     '学習': '教育・スクール',
+    // 不動産
     '不動産': '不動産',
     '住宅': '不動産',
     'マンション': '不動産',
+    // EC・通販（物販系）
     'EC': 'EC・通販',
+    'ec': 'EC・通販',
     '通販': 'EC・通販',
     'ショップ': 'EC・通販',
+    '美容': 'EC・通販',
+    '健康': 'EC・通販',
+    'ファッション': 'EC・通販',
+    'アクセサリー': 'EC・通販',
+    '食品': 'EC・通販',
+    '飲料': 'EC・通販',
+    '家電': 'EC・通販',
+    '生活用品': 'EC・通販',
+    'ホビー': 'EC・通販',
+    '物販': 'EC・通販',
+    // 人材・採用
     '人材': '人材・採用',
     '採用': '人材・採用',
     '転職': '人材・採用',
+    'キャリア': '人材・採用',
+    // 医療・ヘルスケア
     '医療': '医療・ヘルスケア',
     'クリニック': '医療・ヘルスケア',
     '病院': '医療・ヘルスケア',
     'ヘルスケア': '医療・ヘルスケア',
+    'ヘルスケアサービス': '医療・ヘルスケア',
+    '介護': '医療・ヘルスケア',
+    // その他のマッピング
+    '自動車': '不動産', // 高額商材として不動産に近い
+    '旅行': '教育・スクール', // サービス系として教育に近い（親しみやすさ重視）
+    'レジャー': '教育・スクール',
+    '法律': '保険・金融', // 信頼性重視として金融に近い
+    '士業': '保険・金融',
+    'サービス': 'EC・通販', // 汎用
+    'エンタメ': 'EC・通販',
+    'サブスク': 'SaaS・テック',
+    '冠婚葬祭': '保険・金融', // フォーマル・信頼性重視
+    'ライフイベント': '保険・金融',
   };
 
   for (const [keyword, presetKey] of Object.entries(keywordMap)) {
@@ -632,10 +687,6 @@ export function formatPresetForPrompt(preset: IndustryDesignPreset): string {
 ・アクションカラー（10%）: ${preset.color.action.colorFamily}
   例: ${preset.color.action.hexExample}
   効果: ${preset.color.action.effect}
-
-${preset.color.emotionalColor ? `・エモーショナルカラー: ${preset.color.emotionalColor.color}
-  目的: ${preset.color.emotionalColor.purpose}
-  心理メカニズム: ${preset.color.emotionalColor.mechanism}` : ''}
 
 ■ フォント推奨
 ・見出し: ${preset.font.heading.recommendation}（${preset.font.heading.effect}）

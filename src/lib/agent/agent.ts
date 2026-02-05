@@ -4,6 +4,8 @@ import type {
   AgentResult,
   ThoughtStep,
   AgentProgressCallback,
+  CompetitorDocument,
+  CompetitorImportMode,
 } from '@/types';
 import { callClaude, extractJSON } from '@/lib/claude';
 import { getToolByName } from './tools';
@@ -35,6 +37,8 @@ export class DesignGuidelineAgent {
       targetAudience?: string;
       competitorUrls?: string[];
       additionalInfo?: string;
+      competitorDocuments?: CompetitorDocument[];
+      competitorImportMode?: CompetitorImportMode;
       onProgress?: AgentProgressCallback;
     }
   ) {
@@ -48,6 +52,8 @@ export class DesignGuidelineAgent {
         targetAudience: options?.targetAudience,
         competitorUrls: options?.competitorUrls,
         additionalInfo: options?.additionalInfo,
+        competitorDocuments: options?.competitorDocuments,
+        competitorImportMode: options?.competitorImportMode,
       },
       iteration: 0,
       maxIterations: MAX_ITERATIONS,
@@ -285,6 +291,8 @@ export async function runAgentWithStream(
     targetAudience?: string;
     competitorUrls?: string[];
     additionalInfo?: string;
+    competitorDocuments?: CompetitorDocument[];
+    competitorImportMode?: CompetitorImportMode;
   },
   onEvent: AgentStreamCallback
 ): Promise<AgentResult> {
@@ -298,6 +306,8 @@ export async function runAgentWithStream(
       targetAudience: options.targetAudience,
       competitorUrls: options.competitorUrls,
       additionalInfo: options.additionalInfo,
+      competitorDocuments: options.competitorDocuments,
+      competitorImportMode: options.competitorImportMode,
     },
     iteration: 0,
     maxIterations: MAX_ITERATIONS,

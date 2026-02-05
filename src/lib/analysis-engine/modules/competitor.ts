@@ -1,6 +1,8 @@
 import { callClaude, extractJSON } from '@/lib/claude';
 import { analyzeSite } from '../site-analyzer';
-import type { AnalysisContext, CompetitorAnalysis, AnalysisStep, SiteAnalysis } from '@/types';
+import { searchRelatedSites } from '@/lib/search';
+import { parseCompetitorDocuments, convertDocumentsToCompetitors } from './document-parser';
+import type { AnalysisContext, CompetitorAnalysis, AnalysisStep, SiteAnalysis, CompetitorDocument } from '@/types';
 
 // 競合を自動検出するプロンプト
 const FIND_COMPETITORS_PROMPT = `
@@ -18,13 +20,13 @@ JSON配列で、各競合について以下を含めてください：
 
 [
   {
-    "name": "サービス名",
+    "name": "商品・サービス名",
     "url": "公式サイトまたはLPのURL",
     "reason": "競合と判断した理由"
   }
 ]
 
-実在するサービスのみを挙げてください。日本国内で利用可能なサービスを優先してください。
+実在する商品・サービスのみを挙げてください。日本国内で利用可能な商品・サービスを優先してください。
 JSONのみを出力してください。
 `;
 
@@ -139,23 +141,110 @@ export async function analyzeCompetitor(
 
 export const competitorStep: AnalysisStep = {
   name: '競合分析',
-  description: '競合サイトを自動検出し、デザイン・戦略を詳細分析',
+  description: '競合サイトを自動検出し、デザイン・戦略を詳細分析（手動資料にも対応）',
   isRequired: () => true,
 
   async execute(context) {
-    const { siteAnalysis, businessModel, industry, competitorUrls } = context;
+    const { 
+      siteAnalysis, 
+      businessModel, 
+      industry, 
+      competitorUrls,
+      competitorDocuments,
+      competitorImportMode,
+    } = context;
 
     if (!siteAnalysis) {
       throw new Error('Site analysis is required for competitor analysis');
     }
 
+    const competitors: CompetitorAnalysis[] = [];
+
+    // Step 1: 手動アップロード資料の処理
+    if (competitorDocuments && competitorDocuments.length > 0) {
+      console.log(`Processing ${competitorDocuments.length} uploaded competitor documents...`);
+      
+      // 未解析のドキュメントを解析
+      const pendingDocs = competitorDocuments.filter(
+        (doc: CompetitorDocument) => doc.status === 'pending'
+      );
+      
+      if (pendingDocs.length > 0) {
+        const parsedDocs = await parseCompetitorDocuments(pendingDocs);
+        
+        // コンテキストのドキュメントを更新
+        for (const parsedDoc of parsedDocs) {
+          const index = competitorDocuments.findIndex(
+            (doc: CompetitorDocument) => doc.id === parsedDoc.id
+          );
+          if (index !== -1) {
+            competitorDocuments[index] = parsedDoc;
+          }
+        }
+      }
+
+      // 解析済みドキュメントから競合情報を抽出
+      const docsForConversion = competitorDocuments.filter(
+        (doc: CompetitorDocument) => doc.status === 'completed'
+      );
+      const docCompetitors = convertDocumentsToCompetitors(docsForConversion);
+      competitors.push(...docCompetitors);
+
+      console.log(`Extracted ${docCompetitors.length} competitors from uploaded documents`);
+    }
+
+    // Step 2: 手動資料のみモードの場合はここで終了
+    if (competitorImportMode === 'manual_only') {
+      console.log('Manual-only mode: skipping automatic competitor detection');
+      return { 
+        competitors,
+        competitorDocuments, // 更新されたドキュメントを返す
+      };
+    }
+
+    // Step 3: 自動検出（combine_with_autoモードまたはデフォルト）
     // 競合URLが指定されていない場合は自動検出
     let urlsToAnalyze = competitorUrls || [];
 
+    // 既に十分な競合情報がある場合はスキップ
+    const maxAutoCompetitors = 3 - competitors.length;
+    if (maxAutoCompetitors <= 0) {
+      console.log('Sufficient competitors from documents, skipping auto-detection');
+      return { 
+        competitors,
+        competitorDocuments,
+      };
+    }
+
     if (urlsToAnalyze.length === 0) {
       const industryName = businessModel?.industry || industry || '不明';
-      const suggestions = await findCompetitors(siteAnalysis, industryName);
-      urlsToAnalyze = suggestions.map((s) => s.url).slice(0, 3);
+      
+      // まずBrave APIで類似サイトを検索（related:演算子を使用）
+      console.log('Searching for related sites via Brave API...');
+      const relatedSites = await searchRelatedSites(siteAnalysis.url);
+      
+      if (relatedSites.length > 0) {
+        console.log(`Found ${relatedSites.length} related sites via Brave API`);
+        urlsToAnalyze = relatedSites.slice(0, maxAutoCompetitors);
+      }
+      
+      // Brave APIで見つからない、または不足分がある場合はClaude推定で補完
+      if (urlsToAnalyze.length < maxAutoCompetitors) {
+        console.log('Falling back to Claude for competitor suggestions...');
+        const suggestions = await findCompetitors(siteAnalysis, industryName);
+        const suggestedUrls = suggestions.map((s) => s.url);
+        
+        // 既存のURLと重複しないものを追加
+        for (const url of suggestedUrls) {
+          if (urlsToAnalyze.length >= maxAutoCompetitors) break;
+          if (!urlsToAnalyze.includes(url)) {
+            urlsToAnalyze.push(url);
+          }
+        }
+      }
+    } else {
+      // 指定されたURLも制限
+      urlsToAnalyze = urlsToAnalyze.slice(0, maxAutoCompetitors);
     }
 
     // 各競合サイトをスクレイピング
@@ -170,7 +259,6 @@ export const competitorStep: AnalysisStep = {
     }
 
     // 各競合を詳細分析
-    const competitors: CompetitorAnalysis[] = [];
     for (const site of competitorSites) {
       try {
         const analysis = await analyzeCompetitor(site, context);
@@ -180,6 +268,9 @@ export const competitorStep: AnalysisStep = {
       }
     }
 
-    return { competitors };
+    return { 
+      competitors,
+      competitorDocuments, // 更新されたドキュメントを返す
+    };
   },
 };

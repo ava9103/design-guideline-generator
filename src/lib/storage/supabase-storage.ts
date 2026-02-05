@@ -31,8 +31,8 @@ export async function saveGuidelineToSupabase(
     });
 
     if (error) {
-      console.error('Failed to save guideline to Supabase:', error);
-      return { success: false, error: error.message };
+      console.error('Failed to save guideline to Supabase:', error.message);
+      return { success: false, error: error.message || 'Database error' };
     }
 
     return { success: true };

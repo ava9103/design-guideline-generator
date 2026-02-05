@@ -11,7 +11,7 @@ export type WarningLevel = 'error' | 'warning' | 'info';
 
 export interface ConsistencyWarning {
   level: WarningLevel;
-  category: 'color' | 'typography' | 'accessibility' | 'general';
+  category: 'color' | 'typography' | 'accessibility' | 'general' | 'specificity' | 'psychology';
   title: string;
   description: string;
   recommendation: string;
@@ -21,6 +21,8 @@ export interface ConsistencyWarning {
 export interface ConsistencyCheckResult {
   isConsistent: boolean;
   score: number; // 0-100
+  specificityScore: number; // 具体性スコア 0-100
+  psychologyScore: number; // 心理的根拠スコア 0-100
   warnings: ConsistencyWarning[];
   summary: string;
 }
@@ -295,6 +297,254 @@ export function checkTypographyConsistency(
 }
 
 /**
+ * 具体性チェック - 抽象的な表現ではなく具体的な値が使われているか
+ */
+export function checkSpecificity(
+  guidelines: Layer3Guidelines
+): { score: number; warnings: ConsistencyWarning[] } {
+  const warnings: ConsistencyWarning[] = [];
+  let specificityPoints = 0;
+  let maxPoints = 0;
+
+  // 禁止ワード（抽象的な表現）
+  const abstractTerms = [
+    '明るい色', '暗い色', '目立つ色', '落ち着いた色',
+    'ゴシック体', '明朝体', 'サンセリフ', 'セリフ体',
+    '大きめ', '小さめ', '太め', '細め',
+    '適切な', '最適な', '良い感じ', 'いい感じ',
+    '自然な', 'シンプルな', 'モダンな', 'クリーンな'
+  ];
+
+  // 具体的なフォント名パターン
+  const specificFontPatterns = [
+    /noto\s*sans/i, /noto\s*serif/i, /source\s*han/i,
+    /游ゴシック/i, /游明朝/i, /ヒラギノ/i, /hiragino/i,
+    /meiryo/i, /メイリオ/i, /roboto/i, /inter/i,
+    /poppins/i, /montserrat/i, /open\s*sans/i, /lato/i,
+    /manrope/i, /plus\s*jakarta/i
+  ];
+
+  // HEXカラーパターン
+  const hexColorPattern = /#[0-9A-Fa-f]{6}/;
+
+  // 1. フォント名の具体性チェック
+  const fontNames = [
+    guidelines.typography.mainFont.japanese.name,
+    guidelines.typography.mainFont.western.name,
+    guidelines.typography.subFont.japanese.name,
+    guidelines.typography.subFont.western.name,
+  ];
+
+  for (const fontName of fontNames) {
+    maxPoints += 10;
+    const isSpecific = specificFontPatterns.some(pattern => pattern.test(fontName));
+    const isAbstract = abstractTerms.some(term => fontName.includes(term));
+
+    if (isSpecific && !isAbstract) {
+      specificityPoints += 10;
+    } else if (isAbstract) {
+      warnings.push({
+        level: 'warning',
+        category: 'specificity',
+        title: '抽象的なフォント名',
+        description: `「${fontName}」は抽象的です。具体的なフォント名（例: Noto Sans JP）を使用してください`,
+        recommendation: 'Google FontsやAdobe Fontsから具体的なフォント名を指定してください',
+        affectedElements: ['フォント設定'],
+      });
+    } else {
+      specificityPoints += 5; // 部分的に具体的
+    }
+  }
+
+  // 2. カラー値の具体性チェック
+  const colorValues = [
+    { name: 'メインカラー', value: guidelines.color.mainColor.hex },
+    { name: 'サブカラー', value: guidelines.color.subColor.hex },
+    { name: 'アクセントカラー', value: guidelines.color.accentColor.hex },
+  ];
+
+  for (const color of colorValues) {
+    maxPoints += 10;
+    if (hexColorPattern.test(color.value)) {
+      specificityPoints += 10;
+    } else {
+      warnings.push({
+        level: 'error',
+        category: 'specificity',
+        title: '非具体的なカラー値',
+        description: `${color.name}の値「${color.value}」が具体的なHEX値ではありません`,
+        recommendation: '#3B82F6のような6桁のHEXカラーコードを使用してください',
+        affectedElements: [color.name],
+      });
+    }
+  }
+
+  // 3. サイズ値の具体性チェック（pxやremの数値が含まれているか）
+  const sizePattern = /\d+\s*(px|rem|em|pt|%)/i;
+  for (const sizeItem of guidelines.typography.sizeSystem) {
+    maxPoints += 5;
+    if (sizePattern.test(sizeItem.pc) && sizePattern.test(sizeItem.sp)) {
+      specificityPoints += 5;
+    } else {
+      warnings.push({
+        level: 'warning',
+        category: 'specificity',
+        title: '非具体的なサイズ値',
+        description: `${sizeItem.element}のサイズ値が具体的ではありません（PC: ${sizeItem.pc}, SP: ${sizeItem.sp}）`,
+        recommendation: '「36px」「1.5rem」のような具体的な単位付き数値を使用してください',
+        affectedElements: [sizeItem.element],
+      });
+    }
+  }
+
+  // 4. 抽象的な表現が説明文に含まれていないかチェック
+  const descriptions = [
+    guidelines.color.mainColor.psychologicalEffect,
+    guidelines.color.subColor.psychologicalEffect,
+    guidelines.color.accentColor.psychologicalEffect,
+    guidelines.typography.mainFont.japanese.reason,
+  ];
+
+  for (const desc of descriptions) {
+    maxPoints += 5;
+    const hasAbstractTerm = abstractTerms.some(term => desc?.includes(term));
+    if (!hasAbstractTerm && desc && desc.length > 20) {
+      specificityPoints += 5;
+    } else if (hasAbstractTerm) {
+      specificityPoints += 2;
+    }
+  }
+
+  const score = maxPoints > 0 ? Math.round((specificityPoints / maxPoints) * 100) : 100;
+
+  return { score, warnings };
+}
+
+/**
+ * 心理的根拠チェック - 選択理由に心理的効果の説明があるか
+ */
+export function checkPsychologicalRationale(
+  guidelines: Layer3Guidelines
+): { score: number; warnings: ConsistencyWarning[] } {
+  const warnings: ConsistencyWarning[] = [];
+  let psychologyPoints = 0;
+  let maxPoints = 0;
+
+  // 心理効果に関連するキーワード
+  const psychologyKeywords = [
+    '信頼', '安心', '安全', '期待', '興奮', '行動',
+    '購買意欲', 'CVR', 'コンバージョン', '離脱率',
+    '視線誘導', '注目', '認知', '記憶', '印象',
+    '高級感', '親しみ', 'カジュアル', 'プロフェッショナル',
+    '清潔感', 'モダン', '伝統', '革新',
+    '緊急性', '希少性', '権威性', '社会的証明',
+    '心理', '効果', '影響', '促す', '誘導',
+    '視覚的', '直感的', '感情的', '論理的'
+  ];
+
+  // 1. カラーの心理的根拠チェック
+  const colorPsychology = [
+    { name: 'メインカラー', effect: guidelines.color.mainColor.psychologicalEffect },
+    { name: 'サブカラー', effect: guidelines.color.subColor.psychologicalEffect },
+    { name: 'アクセントカラー', effect: guidelines.color.accentColor.psychologicalEffect },
+  ];
+
+  for (const item of colorPsychology) {
+    maxPoints += 15;
+    if (!item.effect || item.effect.length < 10) {
+      warnings.push({
+        level: 'warning',
+        category: 'psychology',
+        title: '心理的根拠が不足',
+        description: `${item.name}に心理的効果の説明がありません`,
+        recommendation: 'なぜこの色を選んだのか、ターゲットにどのような心理効果を与えるかを説明してください',
+        affectedElements: [item.name],
+      });
+    } else {
+      const hasPsychologyKeyword = psychologyKeywords.some(kw => item.effect?.includes(kw));
+      if (hasPsychologyKeyword) {
+        psychologyPoints += 15;
+      } else if (item.effect.length > 30) {
+        psychologyPoints += 10;
+      } else {
+        psychologyPoints += 5;
+        warnings.push({
+          level: 'info',
+          category: 'psychology',
+          title: '心理的根拠を強化可能',
+          description: `${item.name}の心理効果説明をより具体的にできます`,
+          recommendation: '「信頼感を醸成」「購買意欲を高める」など具体的な心理効果を追記してください',
+          affectedElements: [item.name],
+        });
+      }
+    }
+  }
+
+  // 2. フォント選択の心理的根拠チェック
+  const fontReasons = [
+    { name: '日本語メインフォント', reason: guidelines.typography.mainFont.japanese.reason },
+    { name: '欧文メインフォント', reason: guidelines.typography.mainFont.western.reason },
+  ];
+
+  for (const item of fontReasons) {
+    maxPoints += 10;
+    if (!item.reason || item.reason.length < 10) {
+      warnings.push({
+        level: 'warning',
+        category: 'psychology',
+        title: 'フォント選択理由が不足',
+        description: `${item.name}を選んだ理由が不明確です`,
+        recommendation: 'フォントが与える印象と、なぜそれがターゲットに適しているかを説明してください',
+        affectedElements: [item.name],
+      });
+    } else {
+      const hasPsychologyKeyword = psychologyKeywords.some(kw => item.reason?.includes(kw));
+      if (hasPsychologyKeyword || item.reason.length > 30) {
+        psychologyPoints += 10;
+      } else {
+        psychologyPoints += 5;
+      }
+    }
+  }
+
+  // 3. CTAボタンの心理的根拠チェック
+  maxPoints += 15;
+  const ctaRationale = guidelines.ui.buttons.primary.psychologicalRationale;
+  if (!ctaRationale || ctaRationale.length < 10) {
+    warnings.push({
+      level: 'warning',
+      category: 'psychology',
+      title: 'CTAの心理的根拠が不足',
+      description: 'CTAボタンがユーザーの行動を促す理由が説明されていません',
+      recommendation: 'ボタンの色・サイズ・配置がどのようにクリックを誘導するか説明してください',
+      affectedElements: ['CTAボタン'],
+    });
+  } else {
+    const hasPsychologyKeyword = psychologyKeywords.some(kw => ctaRationale?.includes(kw));
+    if (hasPsychologyKeyword) {
+      psychologyPoints += 15;
+    } else {
+      psychologyPoints += 8;
+    }
+  }
+
+  // 4. ジャンプ率の根拠チェック
+  maxPoints += 10;
+  if (guidelines.typography.jumpRatio && guidelines.typography.jumpRatio.rationale) {
+    const rationale = guidelines.typography.jumpRatio.rationale;
+    if (rationale.length > 20) {
+      psychologyPoints += 10;
+    } else {
+      psychologyPoints += 5;
+    }
+  }
+
+  const score = maxPoints > 0 ? Math.round((psychologyPoints / maxPoints) * 100) : 100;
+
+  return { score, warnings };
+}
+
+/**
  * ガイドライン全体の一貫性をチェック
  */
 export function checkGuidelineConsistency(
@@ -302,8 +552,15 @@ export function checkGuidelineConsistency(
 ): ConsistencyCheckResult {
   const colorWarnings = checkColorConsistency(guidelines.color);
   const typographyWarnings = checkTypographyConsistency(guidelines.typography);
+  const specificityResult = checkSpecificity(guidelines);
+  const psychologyResult = checkPsychologicalRationale(guidelines);
 
-  const allWarnings = [...colorWarnings, ...typographyWarnings];
+  const allWarnings = [
+    ...colorWarnings, 
+    ...typographyWarnings, 
+    ...specificityResult.warnings,
+    ...psychologyResult.warnings,
+  ];
 
   // スコア計算
   const errorCount = allWarnings.filter((w) => w.level === 'error').length;
@@ -316,21 +573,28 @@ export function checkGuidelineConsistency(
   score -= infoCount * 2;
   score = Math.max(0, Math.min(100, score));
 
+  // 具体性・心理的根拠スコアも総合スコアに反映
+  const adjustedScore = Math.round(
+    score * 0.5 + specificityResult.score * 0.25 + psychologyResult.score * 0.25
+  );
+
   // サマリー生成
   let summary: string;
-  if (score >= 90) {
-    summary = '非常に一貫性の高いガイドラインです。';
-  } else if (score >= 70) {
-    summary = '概ね良好ですが、いくつかの改善点があります。';
-  } else if (score >= 50) {
-    summary = '一貫性に課題があります。警告を確認してください。';
+  if (adjustedScore >= 90) {
+    summary = '非常に高品質なガイドラインです。具体性と心理的根拠が十分です。';
+  } else if (adjustedScore >= 70) {
+    summary = '概ね良好ですが、具体性や心理的根拠に改善の余地があります。';
+  } else if (adjustedScore >= 50) {
+    summary = '品質に課題があります。抽象的な表現を避け、心理的根拠を追加してください。';
   } else {
-    summary = '重要な一貫性の問題があります。エラーを優先的に対処してください。';
+    summary = '重要な品質問題があります。具体的な値と選択理由を必ず記載してください。';
   }
 
   return {
     isConsistent: errorCount === 0,
-    score,
+    score: adjustedScore,
+    specificityScore: specificityResult.score,
+    psychologyScore: psychologyResult.score,
     warnings: allWarnings,
     summary,
   };

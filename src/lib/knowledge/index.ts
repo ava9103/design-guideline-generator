@@ -24,3 +24,33 @@ export {
   generateCVRRecommendation,
   type CVRKnowledge,
 } from './cvr-knowledge';
+
+export {
+  COLOR_PSYCHOLOGY,
+  COLOR_LAYER_SYSTEM,
+  COLOR_COMBINATIONS,
+  COLOR_CHECKLIST,
+  formatColorStrategyForPrompt,
+  getColorCombinationForIndustry,
+  getColorPsychology,
+  type ColorPsychology,
+  type ColorLayerSystem,
+  type ColorCombination,
+} from './color-strategy';
+
+export {
+  FONT_CATEGORIES,
+  JUMP_RATIO_GUIDELINES,
+  TYPOGRAPHY_SIZE_SYSTEM,
+  TEXT_LAYOUT_RULES,
+  FONT_CHECKLIST,
+  formatFontStrategyForPrompt,
+  getFontCategoryForIndustry,
+  getJumpRatioGuideline,
+  getGoogleFontsRecommendations,
+  type FontCategory,
+  type FontRecommendation,
+  type JumpRatioGuideline,
+  type TypographySizeSystem,
+  type TextLayoutRule,
+} from './font-strategy';

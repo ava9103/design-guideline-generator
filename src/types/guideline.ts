@@ -79,9 +79,12 @@ export interface Layer1Goals {
   positioningMap?: {
     xAxis: { label: string; leftLabel: string; rightLabel: string };
     yAxis: { label: string; topLabel: string; bottomLabel: string };
-    selfPosition: { x: number; y: number };
-    competitors: { name: string; x: number; y: number }[];
+    selfPosition: { x: number; y: number; description: string };
+    competitors: { name: string; x: number; y: number; description: string }[];
   };
+
+  // ゴール全体のサマリー
+  summary?: string;
 }
 
 // 第2層：デザインコンセプト
@@ -201,20 +204,27 @@ export interface ColorGuideline {
     ratio: string;
   };
 
+  // 拡張カラーパレット（図のような表示用）
+  primaryColors?: {
+    hex: string;
+    name?: string;
+  }[];
+
+  secondaryColors?: {
+    hex: string;
+    name?: string;
+  }[];
+
+  neutralColors?: {
+    hex: string;
+    name?: string;
+  }[];
+
   textColors: {
     primary: string;
     secondary: string;
     tertiary: string;
     inverse: string;
-  };
-
-  // エモーショナルカラー（心理的刷り込み用）
-  emotionalColor?: {
-    name: string;
-    hex: string;
-    purpose: string;
-    mechanism: string;
-    usage: string[];
   };
 
   // カラーシステム全体の設計根拠

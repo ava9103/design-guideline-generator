@@ -3,7 +3,7 @@ import { runAnalysisEngine } from '@/lib/analysis-engine';
 import { runAgentWithStream, type AgentStreamEvent } from '@/lib/agent';
 import { generateDesignGuideline, type GenerationProgress } from '@/lib/guideline-generator';
 import { getWorksDataForPrompt } from '@/lib/works-scraper';
-import type { AnalysisContext, ThoughtStep } from '@/types';
+import type { AnalysisContext, ThoughtStep, CompetitorDocument, CompetitorImportMode } from '@/types';
 
 export const maxDuration = 300; // 5分のタイムアウト
 
@@ -14,6 +14,8 @@ interface GenerateRequest {
   competitorUrls?: string[];
   additionalInfo?: string;
   useAgent?: boolean;
+  competitorDocuments?: CompetitorDocument[];
+  competitorImportMode?: CompetitorImportMode;
 }
 
 // SSEエンコーダー
@@ -104,6 +106,8 @@ export async function POST(request: NextRequest) {
               targetAudience: body.targetAudience,
               competitorUrls: body.competitorUrls?.filter((url) => url.trim() !== ''),
               additionalInfo: body.additionalInfo,
+              competitorDocuments: body.competitorDocuments,
+              competitorImportMode: body.competitorImportMode,
             },
             onAgentEvent
           );
@@ -128,6 +132,8 @@ export async function POST(request: NextRequest) {
             targetAudience: body.targetAudience,
             competitorUrls: body.competitorUrls?.filter((url) => url.trim() !== ''),
             additionalInfo: body.additionalInfo,
+            competitorDocuments: body.competitorDocuments,
+            competitorImportMode: body.competitorImportMode,
           });
         }
 

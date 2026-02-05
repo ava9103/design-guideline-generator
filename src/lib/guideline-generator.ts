@@ -6,7 +6,14 @@ import {
   LAYER3_GUIDELINES_PROMPT,
   REFERENCES_PROMPT,
 } from './prompts/system';
-import { getIndustryPreset, formatPresetForPrompt } from './knowledge';
+import { 
+  getIndustryPreset, 
+  formatPresetForPrompt,
+  formatColorStrategyForPrompt,
+  formatFontStrategyForPrompt,
+  getColorCombinationForIndustry,
+  getFontCategoryForIndustry,
+} from './knowledge';
 import { checkGuidelineConsistency, formatWarningsForDisplay } from './validation';
 import { getPhotoReferenceImages, getIllustrationReferenceImages } from './image-search';
 import { scrapeGallerySites } from './gallery-scraper';
@@ -128,6 +135,32 @@ async function generateLayer3Guidelines(
     ? formatPresetForPrompt(industryPreset)
     : '【業種別プリセット】\n該当する業種プリセットはありません。一般的なベストプラクティスに従ってください。';
 
+  // カラー・フォント戦略ガイドを追加
+  const colorStrategyText = formatColorStrategyForPrompt();
+  const fontStrategyText = formatFontStrategyForPrompt();
+  
+  // 業種別のカラー・フォント推奨を取得
+  const colorCombination = getColorCombinationForIndustry(industry);
+  const fontCategory = getFontCategoryForIndustry(industry);
+  
+  const industrySpecificGuide = `
+${colorCombination ? `
+【業種別推奨カラーコンビネーション】
+名前: ${colorCombination.name}
+配色:
+${colorCombination.colors.filter(c => c.role !== 'emotional').map(c => `  - ${c.role}: ${c.hex} (${c.name})`).join('\n')}
+心理効果: ${colorCombination.psychologicalEffect}
+${colorCombination.cvrImpact ? `CVR効果: ${colorCombination.cvrImpact}` : ''}
+` : ''}
+
+${fontCategory ? `
+【業種別推奨フォントスタイル】
+スタイル: ${fontCategory.styleName}
+心理効果: ${fontCategory.psychologicalEffects[0]}
+推奨フォント: ${fontCategory.fonts.slice(0, 3).map(f => f.name).join('、')}
+` : ''}
+`.trim();
+
   // ブランド固有情報を準備
   const serviceName = siteAnalysis?.title || '不明';
   const serviceDescription = siteAnalysis?.description || 
@@ -136,6 +169,17 @@ async function generateLayer3Guidelines(
   const differentiationPoints = layer1Goals.differentiationPoints
     ?.map(d => `${d.title}（${d.reason}）`)
     .join('\n') || '不明';
+
+  // ナレッジベースを統合したプリセットテキスト
+  const combinedKnowledgeText = `
+${industryPresetText}
+
+${colorStrategyText}
+
+${fontStrategyText}
+
+${industrySpecificGuide}
+`.trim();
 
   const prompt = LAYER3_GUIDELINES_PROMPT
     .replace('{serviceName}', serviceName)
@@ -148,7 +192,7 @@ async function generateLayer3Guidelines(
     .replace('{industry}', industry || '不明')
     .replace('{targetAudience}', persona?.primary.name || context.targetAudience || '不明')
     .replace('{competitorDesigns}', competitorDesigns)
-    .replace('{industryPreset}', industryPresetText);
+    .replace('{industryPreset}', combinedKnowledgeText);
 
   const response = await callClaude(prompt, {
     maxTokens: 5000,
@@ -327,6 +371,7 @@ export async function generateDesignGuideline(
     competitorAnalysis = context.competitors.map((comp) => ({
       name: comp.name,
       url: comp.url,
+      description: comp.description || `${comp.name}の競合サイト`,
       marketPosition: comp.marketPosition,
       design: {
         overallTone: comp.design.overallTone,
@@ -341,9 +386,17 @@ export async function generateDesignGuideline(
           style: comp.design.typography.style,
         },
         visualStyle: comp.design.visualStyle,
+        layoutPattern: comp.design.layoutPattern || 'standard',
       },
       strengths: comp.strengths,
       weaknesses: comp.weaknesses,
+      cvrElements: comp.cvrElements || {
+        ctaStyle: '標準',
+        ctaPlacement: [],
+        trustElements: [],
+        urgencyTactics: [],
+      },
+      differentiators: comp.differentiators || [],
     }));
   }
 

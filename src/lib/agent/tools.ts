@@ -1,8 +1,9 @@
-import type { AgentTool, AgentContext, ToolResult } from '@/types';
+import type { AgentTool, AgentContext, ToolResult, CompetitorDocument } from '@/types';
 import { analyzeSite } from '@/lib/analysis-engine/site-analyzer';
 import { callClaude, extractJSON } from '@/lib/claude';
 import { searchWeb, searchCompetitors as searchCompetitorsApi, searchDesignTrends } from '@/lib/search';
 import { scrapeGallerySites, findSimilarGalleryExamples, type GalleryItem } from '@/lib/gallery-scraper';
+import { parseCompetitorDocument, convertDocumentsToCompetitors } from '@/lib/analysis-engine/modules/document-parser';
 
 // ツール定義
 export const AGENT_TOOLS: AgentTool[] = [
@@ -652,6 +653,160 @@ JSONのみを出力してください。
           ? `分析完了：${summary}` 
           : `追加分析が必要：${summary}`,
       };
+    },
+  },
+
+  // 競合分析資料解析ツール
+  {
+    name: 'analyze_competitor_document',
+    description: 'ユーザーがアップロードした競合分析資料（画像、PDF、テキスト）から情報を抽出し、競合分析データに変換します。',
+    parameters: [
+      {
+        name: 'document_id',
+        type: 'string',
+        description: '解析対象ドキュメントのID',
+        required: true,
+      },
+    ],
+    async execute(params, context): Promise<ToolResult> {
+      try {
+        const documentId = params.document_id as string;
+
+        // コンテキストからドキュメントを取得
+        if (!context.competitorDocuments || context.competitorDocuments.length === 0) {
+          return {
+            success: false,
+            error: 'アップロードされた競合分析資料がありません',
+            summary: '競合分析資料がありません',
+          };
+        }
+
+        const document = context.competitorDocuments.find((doc: CompetitorDocument) => doc.id === documentId);
+        if (!document) {
+          return {
+            success: false,
+            error: `ドキュメントが見つかりません: ${documentId}`,
+            summary: 'ドキュメントが見つかりません',
+          };
+        }
+
+        // ドキュメントを解析
+        const parsedDoc = await parseCompetitorDocument(document);
+
+        // コンテキストを更新
+        const docIndex = context.competitorDocuments.findIndex((doc: CompetitorDocument) => doc.id === documentId);
+        if (docIndex !== -1) {
+          context.competitorDocuments[docIndex] = parsedDoc;
+        }
+
+        if (parsedDoc.status === 'error') {
+          return {
+            success: false,
+            error: parsedDoc.error || '解析に失敗しました',
+            summary: `ドキュメント「${document.fileName}」の解析に失敗しました`,
+          };
+        }
+
+        // 解析済みドキュメントから競合分析データを生成
+        const competitors = convertDocumentsToCompetitors([parsedDoc]);
+        if (competitors.length > 0) {
+          if (!context.competitors) {
+            context.competitors = [];
+          }
+          context.competitors.push(...competitors);
+        }
+
+        return {
+          success: true,
+          data: parsedDoc.extractedInfo,
+          summary: `ドキュメント「${document.fileName}」を解析しました。競合「${parsedDoc.extractedInfo?.name || '不明'}」の情報を抽出しました。`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '競合分析資料の解析に失敗しました',
+          summary: '競合分析資料の解析に失敗しました',
+        };
+      }
+    },
+  },
+
+  // 全競合分析資料一括解析ツール
+  {
+    name: 'analyze_all_competitor_documents',
+    description: 'ユーザーがアップロードした全ての競合分析資料を一括で解析し、競合分析データに変換します。',
+    parameters: [],
+    async execute(_params, context): Promise<ToolResult> {
+      try {
+        // コンテキストからドキュメントを取得
+        if (!context.competitorDocuments || context.competitorDocuments.length === 0) {
+          return {
+            success: false,
+            error: 'アップロードされた競合分析資料がありません',
+            summary: '競合分析資料がありません',
+          };
+        }
+
+        // 未解析のドキュメントのみを対象
+        const pendingDocs = context.competitorDocuments.filter(
+          (doc: CompetitorDocument) => doc.status === 'pending'
+        );
+
+        if (pendingDocs.length === 0) {
+          return {
+            success: true,
+            data: { message: 'すべてのドキュメントは解析済みです' },
+            summary: 'すべてのドキュメントは解析済みです',
+          };
+        }
+
+        // 各ドキュメントを解析
+        const results: { success: number; error: number; names: string[] } = {
+          success: 0,
+          error: 0,
+          names: [],
+        };
+
+        for (const doc of pendingDocs) {
+          const parsedDoc = await parseCompetitorDocument(doc);
+          
+          // コンテキストを更新
+          const docIndex = context.competitorDocuments.findIndex(
+            (d: CompetitorDocument) => d.id === doc.id
+          );
+          if (docIndex !== -1) {
+            context.competitorDocuments[docIndex] = parsedDoc;
+          }
+
+          if (parsedDoc.status === 'completed') {
+            results.success++;
+            results.names.push(parsedDoc.extractedInfo?.name || doc.fileName);
+            
+            // 競合分析データを追加
+            const competitors = convertDocumentsToCompetitors([parsedDoc]);
+            if (competitors.length > 0) {
+              if (!context.competitors) {
+                context.competitors = [];
+              }
+              context.competitors.push(...competitors);
+            }
+          } else {
+            results.error++;
+          }
+        }
+
+        return {
+          success: true,
+          data: results,
+          summary: `${pendingDocs.length}件のドキュメントを解析しました。成功: ${results.success}件、エラー: ${results.error}件。競合: ${results.names.join('、')}`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '競合分析資料の一括解析に失敗しました',
+          summary: '競合分析資料の一括解析に失敗しました',
+        };
+      }
     },
   },
 ];

@@ -10,10 +10,7 @@ import { ConceptSection } from './ConceptSection';
 import { TypographySection } from './TypographySection';
 import { ColorSection } from './ColorSection';
 import { VisualSection } from './VisualSection';
-import { LayoutSection } from './LayoutSection';
-import { UIElementsSection } from './UIElementsSection';
 import { ReferencesSection } from './ReferencesSection';
-import { CompetitorComparisonSection } from './CompetitorComparisonSection';
 import { downloadPDF } from '@/lib/export/pdf-generator';
 import { downloadPPTX } from '@/lib/export/pptx-generator';
 
@@ -26,11 +23,6 @@ export function GuidelineReport({ guideline }: Props) {
     goals: true,
     concept: true,
     typography: true,
-    color: true,
-    visual: true,
-    layout: false,
-    ui: false,
-    competitors: true,
     references: true,
   });
   const [isExporting, setIsExporting] = useState<'pdf' | 'pptx' | null>(null);
@@ -147,87 +139,40 @@ export function GuidelineReport({ guideline }: Props) {
           <ConceptSection concept={guideline.layer2Concept} />
         </ReportSection>
 
-        {/* 第3層：デザインガイドライン - タイポグラフィ */}
+        {/* 第3層：デザインガイドライン（統合） */}
         <ReportSection
-          title="第3層：フォントガイド"
-          icon="🔤"
+          title="第3層：デザインガイドライン"
+          icon="🎨"
           isExpanded={expandedSections.typography}
           onToggle={() => toggleSection('typography')}
         >
-          <TypographySection typography={guideline.layer3Guidelines.typography} />
+          <div className="space-y-10">
+            {/* カラー */}
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <span>🎨</span> カラー
+              </h3>
+              <ColorSection color={guideline.layer3Guidelines.color} />
+            </div>
+
+            {/* タイポグラフィ */}
+            <div className="border-t border-slate-200 pt-10">
+              <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <span>🔤</span> フォント
+              </h3>
+              <TypographySection typography={guideline.layer3Guidelines.typography} />
+            </div>
+
+            {/* ビジュアル */}
+            <div className="border-t border-slate-200 pt-10">
+              <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <span>📸</span> ビジュアル
+              </h3>
+              <VisualSection visual={guideline.layer3Guidelines.visual} />
+            </div>
+
+          </div>
         </ReportSection>
-
-        {/* 第3層：デザインガイドライン - カラー */}
-        <ReportSection
-          title="第3層：カラーガイド"
-          icon="🎨"
-          isExpanded={expandedSections.color}
-          onToggle={() => toggleSection('color')}
-        >
-          <ColorSection color={guideline.layer3Guidelines.color} />
-        </ReportSection>
-
-        {/* 第3層：デザインガイドライン - ビジュアル */}
-        <ReportSection
-          title="第3層：ビジュアルガイド"
-          icon="📸"
-          isExpanded={expandedSections.visual}
-          onToggle={() => toggleSection('visual')}
-        >
-          <VisualSection visual={guideline.layer3Guidelines.visual} />
-        </ReportSection>
-
-        {/* 第3層：デザインガイドライン - レイアウト */}
-        {guideline.layer3Guidelines.layout && (
-          <ReportSection
-            title="第3層：レイアウトガイド"
-            icon="📐"
-            isExpanded={expandedSections.layout}
-            onToggle={() => toggleSection('layout')}
-          >
-            <LayoutSection layout={guideline.layer3Guidelines.layout} />
-          </ReportSection>
-        )}
-
-        {/* 第3層：デザインガイドライン - UIエレメント */}
-        {guideline.layer3Guidelines.ui && (
-          <ReportSection
-            title="第3層：UIエレメントガイド"
-            icon="🔘"
-            isExpanded={expandedSections.ui}
-            onToggle={() => toggleSection('ui')}
-          >
-            <UIElementsSection ui={guideline.layer3Guidelines.ui} />
-          </ReportSection>
-        )}
-
-        {/* 競合比較セクション */}
-        {guideline.competitorAnalysis && guideline.competitorAnalysis.length > 0 && (
-          <ReportSection
-            title="競合デザイン比較"
-            icon="⚔️"
-            isExpanded={expandedSections.competitors}
-            onToggle={() => toggleSection('competitors')}
-          >
-            <CompetitorComparisonSection
-              selfName={guideline.title}
-              selfDesign={{
-                overallTone: guideline.layer2Concept.statement,
-                colorScheme: {
-                  primary: guideline.layer3Guidelines.color.mainColor.hex,
-                  secondary: guideline.layer3Guidelines.color.subColor.hex,
-                  accent: guideline.layer3Guidelines.color.accentColor.hex,
-                },
-                typography: {
-                  headingFont: guideline.layer3Guidelines.typography.mainFont.japanese.name,
-                  bodyFont: guideline.layer3Guidelines.typography.subFont?.japanese?.name || 
-                            guideline.layer3Guidelines.typography.mainFont.japanese.name,
-                },
-              }}
-              competitors={guideline.competitorAnalysis}
-            />
-          </ReportSection>
-        )}
 
         {/* 参考実例 */}
         <ReportSection

@@ -101,7 +101,7 @@ export function EvidencePanel({
                       {evidence.title}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-600">{evidence.description}</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">{evidence.description}</p>
                   {evidence.impact && (
                     <div className="mt-2 flex items-center gap-1">
                       <span className="text-xs text-emerald-600 font-medium">

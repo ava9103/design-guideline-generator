@@ -72,7 +72,7 @@ export function TypographySection({ typography }: Props) {
             <h4 className="text-xl font-bold text-slate-800 mb-2">
               {typography.mainFont.japanese.name}
             </h4>
-            <p className="text-sm text-slate-600 mb-3">
+            <p className="text-sm text-slate-600 mb-3 leading-relaxed">
               {typography.mainFont.japanese.reason}
             </p>
             {typography.mainFont.japanese.weights && (
@@ -105,7 +105,7 @@ export function TypographySection({ typography }: Props) {
             <h4 className="text-xl font-bold text-slate-800 mb-2">
               {typography.mainFont.western.name}
             </h4>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 leading-relaxed">
               {typography.mainFont.western.reason}
             </p>
           </div>
@@ -136,7 +136,7 @@ export function TypographySection({ typography }: Props) {
             <h4 className="text-xl font-bold text-slate-800 mb-2">
               {typography.subFont.japanese.name}
             </h4>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 leading-relaxed">
               {typography.subFont.japanese.reason}
             </p>
           </div>
@@ -147,7 +147,7 @@ export function TypographySection({ typography }: Props) {
             <h4 className="text-xl font-bold text-slate-800 mb-2 mt-2">
               {typography.subFont.western.name}
             </h4>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 leading-relaxed">
               {typography.subFont.western.reason}
             </p>
           </div>
@@ -164,7 +164,7 @@ export function TypographySection({ typography }: Props) {
             <h4 className="text-xl font-bold text-slate-800 mb-2">
               {typography.numberFont.name}
             </h4>
-            <p className="text-sm text-slate-600">{typography.numberFont.reason}</p>
+            <p className="text-sm text-slate-600 leading-relaxed">{typography.numberFont.reason}</p>
           </div>
         </div>
       )}
@@ -200,84 +200,6 @@ export function TypographySection({ typography }: Props) {
         </div>
       </div>
 
-      {/* ジャンプ率 */}
-      {typography.jumpRatio && (
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
-            ジャンプ率（視覚的強弱）
-          </h3>
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 text-sm">レベル:</span>
-                <span
-                  className={`px-2 py-1 rounded text-sm font-medium ${
-                    typography.jumpRatio.level === 'high'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : typography.jumpRatio.level === 'medium'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  {typography.jumpRatio.level === 'high'
-                    ? '高'
-                    : typography.jumpRatio.level === 'medium'
-                    ? '中'
-                    : '低'}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-slate-600">
-                  H1/本文: <span className="text-slate-800 font-medium">{typography.jumpRatio.h1ToBody}:1</span>
-                </span>
-                <span className="text-slate-600">
-                  H2/本文: <span className="text-slate-800 font-medium">{typography.jumpRatio.h2ToBody}:1</span>
-                </span>
-              </div>
-            </div>
-            <p className="text-sm text-slate-700 mb-2">{typography.jumpRatio.description}</p>
-            <p className="text-sm text-slate-600 italic">{typography.jumpRatio.rationale}</p>
-          </div>
-        </div>
-      )}
-
-      {/* 業種別コンテキスト */}
-      {typography.industryContext && (
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
-            業種別フォント選定根拠
-          </h3>
-          <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                {typography.industryContext.industry}
-              </span>
-              <span className="text-sm text-slate-600">
-                フォントスタイル:{' '}
-                <span className="text-slate-800">
-                  {typography.industryContext.fontStyle === 'mincho'
-                    ? '明朝体系'
-                    : typography.industryContext.fontStyle === 'gothic'
-                    ? 'ゴシック体系'
-                    : typography.industryContext.fontStyle === 'maru-gothic'
-                    ? '丸ゴシック系'
-                    : 'ミックス'}
-                </span>
-              </span>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <span className="text-xs text-slate-500">心理効果:</span>
-                <p className="text-sm text-slate-700">{typography.industryContext.psychologicalEffect}</p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500">CVRへの影響:</span>
-                <p className="text-sm text-slate-700">{typography.industryContext.cvrImpact}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

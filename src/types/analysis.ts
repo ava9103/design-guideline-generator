@@ -1,3 +1,18 @@
+// 競合分析資料（ユーザーアップロード）
+export interface CompetitorDocument {
+  id: string;
+  fileName: string;
+  fileType: 'image' | 'pdf' | 'text';
+  content?: string;        // テキスト/抽出テキスト
+  imageBase64?: string;    // 画像の場合のBase64データ
+  extractedInfo?: Partial<CompetitorAnalysis>;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  error?: string;
+}
+
+// 競合資料インポートモード
+export type CompetitorImportMode = 'manual_only' | 'combine_with_auto';
+
 // 分析コンテキスト（全分析結果を統合）
 export interface AnalysisContext {
   // ユーザー入力（最小限）
@@ -7,13 +22,16 @@ export interface AnalysisContext {
   competitorUrls?: string[];
   additionalInfo?: string;
 
+  // 競合分析資料（ユーザーアップロード）
+  competitorDocuments?: CompetitorDocument[];
+  competitorImportMode?: CompetitorImportMode;
+
   // 分析結果（自動収集）
   siteAnalysis?: SiteAnalysis;
   businessModel?: BusinessModelAnalysis;
   persona?: PersonaAnalysis;
   competitors?: CompetitorAnalysis[];
   designTrend?: DesignTrendAnalysis;
-  cvrElements?: CVRElementsAnalysis;
 }
 
 // サイト構造分析
@@ -163,48 +181,6 @@ export interface DesignTrendAnalysis {
   };
 
   antiPatterns: string[];
-}
-
-// CVR要素分析
-export interface CVRElementsAnalysis {
-  cta: {
-    mainCTA: {
-      text: string;
-      style: string;
-      placement: string;
-      effectiveness: 'high' | 'medium' | 'low';
-      improvement: string;
-    };
-    secondaryCTAs: string[];
-    recommendedImprovements: string[];
-  };
-
-  trustBuilding: {
-    existing: string[];
-    missing: string[];
-    recommendations: string[];
-  };
-
-  firstView: {
-    headline: string;
-    subheadline: string;
-    valueProposition: string;
-    clarity: 'clear' | 'moderate' | 'unclear';
-    recommendations: string[];
-  };
-
-  form?: {
-    fieldCount: number;
-    complexity: 'simple' | 'moderate' | 'complex';
-    friction: string[];
-    recommendations: string[];
-  };
-
-  overallRecommendations: {
-    priority: 'high' | 'medium' | 'low';
-    recommendation: string;
-    expectedImpact: string;
-  }[];
 }
 
 // 分析ステップ

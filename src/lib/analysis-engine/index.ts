@@ -1,11 +1,10 @@
-import type { AnalysisContext, AnalysisStep, AnalysisProgress } from '@/types';
+import type { AnalysisContext, AnalysisStep, AnalysisProgress, CompetitorDocument, CompetitorImportMode } from '@/types';
 import { analyzeSite } from './site-analyzer';
 import {
   businessModelStep,
   personaStep,
   competitorStep,
   designTrendStep,
-  cvrAnalysisStep,
 } from './modules';
 
 // 分析ステップの定義（実行順序）
@@ -24,7 +23,6 @@ const ANALYSIS_STEPS: AnalysisStep[] = [
   personaStep,
   competitorStep,
   designTrendStep,
-  cvrAnalysisStep,
 ];
 
 export type ProgressCallback = (progress: AnalysisProgress) => void;
@@ -36,6 +34,8 @@ export async function runAnalysisEngine(
     targetAudience?: string;
     competitorUrls?: string[];
     additionalInfo?: string;
+    competitorDocuments?: CompetitorDocument[];
+    competitorImportMode?: CompetitorImportMode;
   },
   onProgress?: ProgressCallback
 ): Promise<AnalysisContext> {
@@ -46,6 +46,8 @@ export async function runAnalysisEngine(
     targetAudience: input.targetAudience,
     competitorUrls: input.competitorUrls,
     additionalInfo: input.additionalInfo,
+    competitorDocuments: input.competitorDocuments,
+    competitorImportMode: input.competitorImportMode,
   };
 
   const completedSteps: string[] = [];

@@ -49,13 +49,16 @@ export interface AgentContext {
   competitorUrls?: string[];
   additionalInfo?: string;
 
+  // 競合分析資料（ユーザーアップロード）
+  competitorDocuments?: import('./analysis').CompetitorDocument[];
+  competitorImportMode?: import('./analysis').CompetitorImportMode;
+
   // 分析結果
   siteAnalysis?: import('./analysis').SiteAnalysis;
   businessModel?: import('./analysis').BusinessModelAnalysis;
   persona?: import('./analysis').PersonaAnalysis;
   competitors?: import('./analysis').CompetitorAnalysis[];
   designTrend?: import('./analysis').DesignTrendAnalysis;
-  cvrElements?: import('./analysis').CVRElementsAnalysis;
 
   // エージェントが収集した追加情報
   webSearchResults?: WebSearchResult[];

@@ -29,19 +29,16 @@ export function ConceptSection({ concept }: Props) {
       {/* デザイン原則 */}
       <div>
         <h3 className="text-lg font-semibold text-slate-800 mb-4">デザイン原則</h3>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {concept.principles.map((principle, index) => (
             <div
               key={index}
-              className="flex items-start gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200"
+              className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200"
             >
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                <Check className="text-emerald-600" size={14} />
+              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                <Check className="text-emerald-600" size={12} />
               </div>
-              <div>
-                <h4 className="font-medium text-slate-800 mb-1">{principle.title}</h4>
-                <p className="text-slate-600 text-sm">{principle.reason}</p>
-              </div>
+              <span className="font-medium text-slate-800">{principle.title}</span>
             </div>
           ))}
         </div>
@@ -50,19 +47,16 @@ export function ConceptSection({ concept }: Props) {
       {/* 禁止事項 */}
       <div>
         <h3 className="text-lg font-semibold text-slate-800 mb-4">デザイン禁止事項</h3>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {concept.prohibitions.map((prohibition, index) => (
             <div
               key={index}
-              className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200"
+              className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200"
             >
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
-                <X className="text-red-600" size={14} />
+              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 flex items-center justify-center">
+                <X className="text-red-600" size={12} />
               </div>
-              <div>
-                <h4 className="font-medium text-red-700 mb-1">{prohibition.item}</h4>
-                <p className="text-slate-600 text-sm">{prohibition.reason}</p>
-              </div>
+              <span className="font-medium text-red-700">{prohibition.item}</span>
             </div>
           ))}
         </div>
