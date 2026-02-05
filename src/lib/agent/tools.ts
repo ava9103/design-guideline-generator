@@ -1,9 +1,64 @@
 import type { AgentTool, AgentContext, ToolResult } from '@/types';
 import { analyzeSite } from '@/lib/analysis-engine/site-analyzer';
 import { callClaude, extractJSON } from '@/lib/claude';
+import { searchWeb, searchCompetitors as searchCompetitorsApi, searchDesignTrends } from '@/lib/search';
+import { scrapeGallerySites, findSimilarGalleryExamples, type GalleryItem } from '@/lib/gallery-scraper';
 
 // ツール定義
 export const AGENT_TOOLS: AgentTool[] = [
+  // Web検索ツール（汎用）
+  {
+    name: 'web_search',
+    description: 'Google検索を実行し、最新の情報を取得します。競合調査、業界トレンド、デザイン事例などの情報収集に使用してください。',
+    parameters: [
+      {
+        name: 'query',
+        type: 'string',
+        description: '検索クエリ（日本語可）',
+        required: true,
+      },
+      {
+        name: 'num_results',
+        type: 'number',
+        description: '取得する結果数（デフォルト: 10、最大: 20）',
+        required: false,
+      },
+    ],
+    async execute(params): Promise<ToolResult> {
+      try {
+        const query = params.query as string;
+        const numResults = Math.min((params.num_results as number) || 10, 20);
+
+        const results = await searchWeb(query, { num: numResults });
+
+        if (results.length === 0) {
+          return {
+            success: false,
+            error: 'Web検索が利用できません。SERPER_API_KEYが設定されていない可能性があります。',
+            summary: 'Web検索機能が無効です',
+          };
+        }
+
+        const formattedResults = results.map((r, i) => 
+          `${i + 1}. ${r.title}\n   URL: ${r.link}\n   概要: ${r.snippet}`
+        ).join('\n\n');
+
+        return {
+          success: true,
+          data: results,
+          summary: `「${query}」で${results.length}件の検索結果を取得しました:\n${formattedResults.slice(0, 1000)}`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Web検索に失敗しました',
+          summary: 'Web検索に失敗しました',
+        };
+      }
+    },
+  },
+
+
   // サイト分析ツール
   {
     name: 'analyze_site',
@@ -169,10 +224,10 @@ JSONのみを出力してください。
     },
   },
 
-  // 競合検索ツール
+  // 競合検索ツール（Web検索ベース）
   {
     name: 'search_competitors',
-    description: '業界とサービス内容から競合サービスを検索・推定します。',
+    description: '業界とサービス内容から競合サービスをWeb検索で発見します。実際のGoogle検索結果に基づいて競合を特定します。',
     parameters: [
       {
         name: 'industry',
@@ -191,7 +246,14 @@ JSONのみを出力してください。
       try {
         const { industry, service_description } = params as { industry: string; service_description: string };
 
-        const prompt = `
+        // Serper APIで実際のWeb検索を実行
+        const searchResults = await searchCompetitorsApi(industry, service_description);
+
+        if (searchResults.length === 0) {
+          // Web検索が利用できない場合はLLMにフォールバック
+          console.warn('Web検索が利用できないため、LLMによる推定を使用します');
+          
+          const prompt = `
 以下の業界とサービスに対する競合を3件推定してJSON形式で出力してください：
 
 業界: ${industry}
@@ -202,7 +264,8 @@ JSONのみを出力してください。
   {
     "name": "サービス名",
     "url": "公式サイトURL",
-    "reason": "競合と判断した理由"
+    "reason": "競合と判断した理由",
+    "source": "LLM推定"
   }
 ]
 
@@ -210,11 +273,53 @@ JSONのみを出力してください。
 JSONのみを出力してください。
 `;
 
-        const response = await callClaude(prompt, { maxTokens: 1000 });
-        const competitors = extractJSON<{ name: string; url: string; reason: string }[]>(response);
+          const response = await callClaude(prompt, { maxTokens: 1000 });
+          const competitors = extractJSON<{ name: string; url: string; reason: string; source: string }[]>(response);
+
+          if (!competitors) {
+            throw new Error('競合の検索に失敗しました');
+          }
+
+          context.competitorUrls = competitors.map(c => c.url);
+
+          return {
+            success: true,
+            data: competitors,
+            summary: `競合を${competitors.length}件推定しました（LLM推定）：${competitors.map(c => c.name).join('、')}`,
+          };
+        }
+
+        // Web検索結果からLLMで競合を特定
+        const searchResultsSummary = searchResults
+          .slice(0, 15)
+          .map((r, i) => `${i + 1}. ${r.title}\n   URL: ${r.link}\n   概要: ${r.snippet}`)
+          .join('\n\n');
+
+        const prompt = `
+以下はGoogle検索結果です。この中から「${service_description}」の競合となりうるサービス・企業を3件選んでJSON形式で出力してください。
+
+【検索結果】
+${searchResultsSummary}
+
+【出力形式】
+[
+  {
+    "name": "サービス名/企業名",
+    "url": "公式サイトURL（検索結果から抽出）",
+    "reason": "競合と判断した理由",
+    "source": "Google検索"
+  }
+]
+
+検索結果に含まれるサービス・企業のみを選んでください。比較サイトやまとめ記事ではなく、実際のサービス提供企業を選んでください。
+JSONのみを出力してください。
+`;
+
+        const response = await callClaude(prompt, { maxTokens: 1500 });
+        const competitors = extractJSON<{ name: string; url: string; reason: string; source: string }[]>(response);
 
         if (!competitors) {
-          throw new Error('競合の検索に失敗しました');
+          throw new Error('競合の特定に失敗しました');
         }
 
         // コンテキストに競合URLを保存
@@ -222,8 +327,11 @@ JSONのみを出力してください。
 
         return {
           success: true,
-          data: competitors,
-          summary: `競合を${competitors.length}件検出しました：${competitors.map(c => c.name).join('、')}`,
+          data: {
+            competitors,
+            rawSearchResults: searchResults.slice(0, 10),
+          },
+          summary: `Web検索により競合を${competitors.length}件発見しました：${competitors.map(c => c.name).join('、')}`,
         };
       } catch (error) {
         return {
@@ -409,6 +517,80 @@ JSONのみを出力してください。
           success: false,
           error: error instanceof Error ? error.message : 'デザイントレンド分析に失敗しました',
           summary: 'デザイントレンド分析に失敗しました',
+        };
+      }
+    },
+  },
+
+  // ギャラリーサイト検索ツール
+  {
+    name: 'search_gallery_examples',
+    description: 'LPギャラリーサイト（LPアーカイブ、LP POCKET等）から参考デザイン事例を検索します。業界やスタイルでフィルタリング可能です。',
+    parameters: [
+      {
+        name: 'industry',
+        type: 'string',
+        description: '業界名（IT・情報通信・アプリ、小売・消費財・商品、金融・証券・保険など）',
+        required: false,
+      },
+      {
+        name: 'concept_keywords',
+        type: 'string',
+        description: 'デザインコンセプトのキーワード（カンマ区切り）',
+        required: false,
+      },
+      {
+        name: 'limit',
+        type: 'number',
+        description: '取得件数（デフォルト: 10、最大: 20）',
+        required: false,
+      },
+    ],
+    async execute(params, context): Promise<ToolResult> {
+      try {
+        const industry = params.industry as string | undefined;
+        const conceptKeywordsStr = params.concept_keywords as string | undefined;
+        const limit = Math.min((params.limit as number) || 10, 20);
+
+        let items: GalleryItem[];
+
+        if (conceptKeywordsStr) {
+          const keywords = conceptKeywordsStr.split(',').map(k => k.trim());
+          items = await findSimilarGalleryExamples(industry || '', keywords, { limit });
+        } else {
+          items = await scrapeGallerySites({ industry, limit });
+        }
+
+        if (items.length === 0) {
+          return {
+            success: false,
+            error: 'ギャラリーサイトから事例を取得できませんでした',
+            summary: '参考事例の取得に失敗しました',
+          };
+        }
+
+        // コンテキストにギャラリー事例を保存
+        if (!context.galleryExamples) {
+          context.galleryExamples = [];
+        }
+        context.galleryExamples.push(...items);
+
+        const formattedResults = items
+          .map((item, i) => 
+            `${i + 1}. ${item.title}\n   URL: ${item.url}\n   出典: ${item.source}${item.industry ? `\n   業界: ${item.industry}` : ''}`
+          )
+          .join('\n\n');
+
+        return {
+          success: true,
+          data: items,
+          summary: `ギャラリーサイトから${items.length}件の参考事例を取得しました:\n${formattedResults.slice(0, 1500)}`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'ギャラリー検索に失敗しました',
+          summary: 'ギャラリー検索に失敗しました',
         };
       }
     },

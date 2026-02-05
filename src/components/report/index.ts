@@ -5,3 +5,8 @@ export { TypographySection } from './TypographySection';
 export { ColorSection } from './ColorSection';
 export { VisualSection } from './VisualSection';
 export { ReferencesSection } from './ReferencesSection';
+export { PositioningMap } from './PositioningMap';
+export { LayoutSection } from './LayoutSection';
+export { UIElementsSection } from './UIElementsSection';
+export { EvidencePanel, EvidenceBadge, InlineEvidence } from './EvidencePanel';
+export { CompetitorComparisonSection } from './CompetitorComparisonSection';

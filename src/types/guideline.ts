@@ -21,9 +21,35 @@ export interface DesignGuideline {
   // 参考実例
   references: References;
 
+  // 競合分析データ（オプション）
+  competitorAnalysis?: CompetitorAnalysis[];
+
   // 共有設定
   shareSettings?: ShareSettings;
   shareSlug?: string;
+}
+
+// 競合分析データ
+export interface CompetitorAnalysis {
+  name: string;
+  url?: string;
+  marketPosition?: string;
+  design: {
+    overallTone: string;
+    colorScheme: {
+      primary: string;
+      secondary: string;
+      accent: string;
+    };
+    typography: {
+      headingFont: string;
+      bodyFont: string;
+      style: string;
+    };
+    visualStyle: string;
+  };
+  strengths?: string[];
+  weaknesses?: string[];
 }
 
 // 入力データ

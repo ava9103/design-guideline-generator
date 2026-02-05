@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Design Guideline Generator - AIによるデザインガイドライン自動生成',
+  title: 'LP Design Guideline Generator - AIによるLPデザインガイドライン自動生成',
   description:
-    'URLを入力するだけで、競合分析・ペルソナ推定・デザイントレンド分析を自動実行。3層構造の実務的なデザインガイドラインを生成します。',
+    'ランディングページのURLを入力するだけで、競合分析・ペルソナ推定・デザイントレンド分析を自動実行。CVR向上に特化した3層構造のLPデザインガイドラインを生成します。',
 };
 
 export default function RootLayout({

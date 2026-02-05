@@ -266,3 +266,187 @@ export async function runAgent(
   const agent = new DesignGuidelineAgent(targetUrl, options);
   return agent.run();
 }
+
+// SSEストリーミング用のイベント型
+export type AgentStreamEvent = 
+  | { type: 'thought'; step: ThoughtStep }
+  | { type: 'tool_start'; tool: string; params: Record<string, unknown> }
+  | { type: 'tool_end'; tool: string; success: boolean; summary: string }
+  | { type: 'phase'; phase: string; message: string };
+
+// ストリーミングイベントコールバック型
+export type AgentStreamCallback = (event: AgentStreamEvent) => Promise<void> | void;
+
+// ストリーミング対応エージェント実行
+export async function runAgentWithStream(
+  targetUrl: string,
+  options: {
+    industry?: string;
+    targetAudience?: string;
+    competitorUrls?: string[];
+    additionalInfo?: string;
+  },
+  onEvent: AgentStreamCallback
+): Promise<AgentResult> {
+  const state: AgentState = {
+    status: 'idle',
+    currentGoal: `「${targetUrl}」のデザインガイドライン生成に必要な情報を収集・分析する`,
+    thoughtHistory: [],
+    collectedData: {
+      targetUrl,
+      industry: options.industry,
+      targetAudience: options.targetAudience,
+      competitorUrls: options.competitorUrls,
+      additionalInfo: options.additionalInfo,
+    },
+    iteration: 0,
+    maxIterations: MAX_ITERATIONS,
+  };
+
+  const addThought = async (step: ThoughtStep) => {
+    state.thoughtHistory.push(step);
+    await onEvent({ type: 'thought', step });
+  };
+
+  try {
+    await onEvent({
+      type: 'phase',
+      phase: 'init',
+      message: 'エージェント分析を開始しています...',
+    });
+
+    while (state.iteration < MAX_ITERATIONS) {
+      state.iteration++;
+      state.status = 'thinking';
+
+      await onEvent({
+        type: 'phase',
+        phase: `step-${state.iteration}`,
+        message: `ステップ ${state.iteration}/${MAX_ITERATIONS}: 次のアクションを決定中...`,
+      });
+
+      // LLMに次のアクションを決定させる
+      const prompt = createAgentPrompt(
+        state.currentGoal,
+        formatContext(state.collectedData),
+        formatThoughtHistory(state.thoughtHistory)
+      );
+
+      const response = await callClaude(prompt, {
+        maxTokens: 2000,
+        systemPrompt: AGENT_SYSTEM_PROMPT,
+        temperature: 0.2,
+      });
+
+      const action = extractJSON<AgentAction>(response);
+
+      if (!action) {
+        console.error('Failed to parse agent response:', response);
+        continue;
+      }
+
+      // 思考を記録・通知
+      await addThought({
+        type: 'thought',
+        content: action.thought,
+        timestamp: new Date().toISOString(),
+      });
+
+      // 完了チェック
+      if (action.is_complete) {
+        await addThought({
+          type: 'final_answer',
+          content: action.final_summary || '分析完了',
+          timestamp: new Date().toISOString(),
+        });
+
+        state.status = 'completed';
+
+        return {
+          success: true,
+          context: state.collectedData,
+          thoughtHistory: state.thoughtHistory,
+          summary: action.final_summary || '分析が完了しました',
+        };
+      }
+
+      // アクションを実行
+      if (action.action && action.action_input) {
+        state.status = 'executing';
+
+        await onEvent({
+          type: 'tool_start',
+          tool: action.action,
+          params: action.action_input,
+        });
+
+        // アクションを記録
+        await addThought({
+          type: 'action',
+          content: `${action.action} を実行`,
+          timestamp: new Date().toISOString(),
+          toolCall: {
+            name: action.action,
+            parameters: action.action_input,
+          },
+        });
+
+        // ツールを実行
+        const tool = getToolByName(action.action);
+        let result;
+
+        if (!tool) {
+          result = {
+            success: false,
+            error: `ツール "${action.action}" が見つかりません`,
+            summary: `ツール "${action.action}" は利用できません`,
+          };
+        } else {
+          try {
+            result = await tool.execute(action.action_input, state.collectedData);
+          } catch (error) {
+            result = {
+              success: false,
+              error: error instanceof Error ? error.message : '不明なエラー',
+              summary: `ツール実行エラー: ${error instanceof Error ? error.message : '不明'}`,
+            };
+          }
+        }
+
+        await onEvent({
+          type: 'tool_end',
+          tool: action.action,
+          success: result.success,
+          summary: result.summary,
+        });
+
+        // 観察を記録
+        await addThought({
+          type: 'observation',
+          content: result.summary,
+          timestamp: new Date().toISOString(),
+          toolResult: result,
+        });
+      }
+    }
+
+    // 最大イテレーション到達
+    state.status = 'completed';
+    return {
+      success: true,
+      context: state.collectedData,
+      thoughtHistory: state.thoughtHistory,
+      summary: '最大ステップ数に達したため、収集した情報で分析を完了しました',
+    };
+
+  } catch (error) {
+    state.status = 'error';
+    return {
+      success: false,
+      context: state.collectedData,
+      thoughtHistory: state.thoughtHistory,
+      summary: '',
+      error: error instanceof Error ? error.message : '不明なエラー',
+    };
+  }
+}

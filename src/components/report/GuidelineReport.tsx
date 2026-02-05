@@ -1,16 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Presentation, Link, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, Presentation, Link, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import type { DesignGuideline } from '@/types';
 import { GoalsSection } from './GoalsSection';
 import { ConceptSection } from './ConceptSection';
 import { TypographySection } from './TypographySection';
 import { ColorSection } from './ColorSection';
 import { VisualSection } from './VisualSection';
+import { LayoutSection } from './LayoutSection';
+import { UIElementsSection } from './UIElementsSection';
 import { ReferencesSection } from './ReferencesSection';
+import { CompetitorComparisonSection } from './CompetitorComparisonSection';
+import { downloadPDF } from '@/lib/export/pdf-generator';
+import { downloadPPTX } from '@/lib/export/pptx-generator';
 
 interface Props {
   guideline: DesignGuideline;
@@ -23,8 +28,12 @@ export function GuidelineReport({ guideline }: Props) {
     typography: true,
     color: true,
     visual: true,
+    layout: false,
+    ui: false,
+    competitors: true,
     references: true,
   });
+  const [isExporting, setIsExporting] = useState<'pdf' | 'pptx' | null>(null);
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -33,19 +42,34 @@ export function GuidelineReport({ guideline }: Props) {
     }));
   };
 
-  const handleExportPDF = () => {
-    // PDF出力機能（将来実装）
-    alert('PDF出力機能は準備中です');
+  const handleExportPDF = async () => {
+    try {
+      setIsExporting('pdf');
+      await downloadPDF(guideline);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      alert('PDFの出力に失敗しました。');
+    } finally {
+      setIsExporting(null);
+    }
   };
 
-  const handleExportPPTX = () => {
-    // PowerPoint出力機能（将来実装）
-    alert('PowerPoint出力機能は準備中です');
+  const handleExportPPTX = async () => {
+    try {
+      setIsExporting('pptx');
+      await downloadPPTX(guideline);
+    } catch (error) {
+      console.error('PPTX export failed:', error);
+      alert('PowerPointの出力に失敗しました。');
+    } finally {
+      setIsExporting(null);
+    }
   };
 
   const handleShare = () => {
-    // 共有機能（将来実装）
-    alert('共有機能は準備中です');
+    // 共有機能はpage.tsxで実装済み
+    const shareEvent = new CustomEvent('openShareModal');
+    window.dispatchEvent(shareEvent);
   };
 
   return (
@@ -54,20 +78,38 @@ export function GuidelineReport({ guideline }: Props) {
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
-              デザインガイドライン
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">
+              {guideline.title}
             </h1>
-            <p className="text-slate-400">{guideline.title}</p>
+            <p className="text-slate-600">デザインガイドライン</p>
           </div>
 
           {/* エクスポートボタン */}
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={handleExportPDF}>
-              <FileText size={16} className="mr-1" />
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={handleExportPDF}
+              disabled={isExporting !== null}
+            >
+              {isExporting === 'pdf' ? (
+                <Loader2 size={16} className="mr-1 animate-spin" />
+              ) : (
+                <FileText size={16} className="mr-1" />
+              )}
               PDF
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleExportPPTX}>
-              <Presentation size={16} className="mr-1" />
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={handleExportPPTX}
+              disabled={isExporting !== null}
+            >
+              {isExporting === 'pptx' ? (
+                <Loader2 size={16} className="mr-1 animate-spin" />
+              ) : (
+                <Presentation size={16} className="mr-1" />
+              )}
               PPTX
             </Button>
             <Button variant="primary" size="sm" onClick={handleShare}>
@@ -135,6 +177,58 @@ export function GuidelineReport({ guideline }: Props) {
           <VisualSection visual={guideline.layer3Guidelines.visual} />
         </ReportSection>
 
+        {/* 第3層：デザインガイドライン - レイアウト */}
+        {guideline.layer3Guidelines.layout && (
+          <ReportSection
+            title="第3層：レイアウトガイド"
+            icon="📐"
+            isExpanded={expandedSections.layout}
+            onToggle={() => toggleSection('layout')}
+          >
+            <LayoutSection layout={guideline.layer3Guidelines.layout} />
+          </ReportSection>
+        )}
+
+        {/* 第3層：デザインガイドライン - UIエレメント */}
+        {guideline.layer3Guidelines.ui && (
+          <ReportSection
+            title="第3層：UIエレメントガイド"
+            icon="🔘"
+            isExpanded={expandedSections.ui}
+            onToggle={() => toggleSection('ui')}
+          >
+            <UIElementsSection ui={guideline.layer3Guidelines.ui} />
+          </ReportSection>
+        )}
+
+        {/* 競合比較セクション */}
+        {guideline.competitorAnalysis && guideline.competitorAnalysis.length > 0 && (
+          <ReportSection
+            title="競合デザイン比較"
+            icon="⚔️"
+            isExpanded={expandedSections.competitors}
+            onToggle={() => toggleSection('competitors')}
+          >
+            <CompetitorComparisonSection
+              selfName={guideline.title}
+              selfDesign={{
+                overallTone: guideline.layer2Concept.statement,
+                colorScheme: {
+                  primary: guideline.layer3Guidelines.color.mainColor.hex,
+                  secondary: guideline.layer3Guidelines.color.subColor.hex,
+                  accent: guideline.layer3Guidelines.color.accentColor.hex,
+                },
+                typography: {
+                  headingFont: guideline.layer3Guidelines.typography.mainFont.japanese.name,
+                  bodyFont: guideline.layer3Guidelines.typography.subFont?.japanese?.name || 
+                            guideline.layer3Guidelines.typography.mainFont.japanese.name,
+                },
+              }}
+              competitors={guideline.competitorAnalysis}
+            />
+          </ReportSection>
+        )}
+
         {/* 参考実例 */}
         <ReportSection
           title="参考実例"
@@ -169,21 +263,21 @@ function ReportSection({
     <Card className="overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
       >
         <div className="flex items-center gap-3">
           <span className="text-2xl">{icon}</span>
-          <h2 className="text-xl font-bold text-white">{title}</h2>
+          <h2 className="text-xl font-bold text-slate-800">{title}</h2>
         </div>
         {isExpanded ? (
-          <ChevronUp className="text-slate-400" size={24} />
+          <ChevronUp className="text-slate-500" size={24} />
         ) : (
-          <ChevronDown className="text-slate-400" size={24} />
+          <ChevronDown className="text-slate-500" size={24} />
         )}
       </button>
 
       {isExpanded && (
-        <div className="px-6 pb-6 border-t border-slate-700">
+        <div className="px-6 pb-6 border-t border-slate-200">
           <div className="pt-4">{children}</div>
         </div>
       )}

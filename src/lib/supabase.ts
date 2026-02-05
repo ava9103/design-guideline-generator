@@ -1,14 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// クライアント側用
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Supabaseが設定されているかチェック
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+// クライアント側用（環境変数が設定されていない場合はnull）
+export const supabase: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  : null;
 
 // サーバー側用（サービスロールキー使用）
-export function createServerSupabaseClient() {
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+export function createServerSupabaseClient(): SupabaseClient | null {
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn('Supabase is not configured. Some features may be unavailable.');
+    return null;
+  }
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 

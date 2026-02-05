@@ -60,6 +60,16 @@ export interface AgentContext {
   // エージェントが収集した追加情報
   webSearchResults?: WebSearchResult[];
   insights?: string[];
+  
+  // ギャラリーサイトからの参考事例
+  galleryExamples?: {
+    title: string;
+    url: string;
+    thumbnailUrl?: string;
+    source: string;
+    industry?: string;
+    style?: string;
+  }[];
 }
 
 // Web検索結果

@@ -8,6 +8,8 @@ import {
 } from './prompts/system';
 import { getIndustryPreset, formatPresetForPrompt } from './knowledge';
 import { checkGuidelineConsistency, formatWarningsForDisplay } from './validation';
+import { getPhotoReferenceImages, getIllustrationReferenceImages } from './image-search';
+import { scrapeGallerySites } from './gallery-scraper';
 import type {
   AnalysisContext,
   Layer1Goals,
@@ -15,6 +17,7 @@ import type {
   Layer3Guidelines,
   References,
   DesignGuideline,
+  CompetitorAnalysis,
 } from '@/types';
 import { nanoid } from 'nanoid';
 
@@ -109,7 +112,7 @@ async function generateLayer3Guidelines(
   layer1Goals: Layer1Goals,
   layer2Concept: Layer2Concept
 ): Promise<Layer3Guidelines> {
-  const { businessModel, persona, competitors } = context;
+  const { siteAnalysis, businessModel, persona, competitors } = context;
 
   const competitorDesigns = competitors
     ?.map(
@@ -125,7 +128,19 @@ async function generateLayer3Guidelines(
     ? formatPresetForPrompt(industryPreset)
     : '【業種別プリセット】\n該当する業種プリセットはありません。一般的なベストプラクティスに従ってください。';
 
+  // ブランド固有情報を準備
+  const serviceName = siteAnalysis?.title || '不明';
+  const serviceDescription = siteAnalysis?.description || 
+    (siteAnalysis?.headings?.slice(0, 5).map(h => h.text).join('、')) || 
+    '不明';
+  const differentiationPoints = layer1Goals.differentiationPoints
+    ?.map(d => `${d.title}（${d.reason}）`)
+    .join('\n') || '不明';
+
   const prompt = LAYER3_GUIDELINES_PROMPT
+    .replace('{serviceName}', serviceName)
+    .replace('{serviceDescription}', serviceDescription)
+    .replace('{differentiationPoints}', differentiationPoints)
     .replace('{conceptStatement}', layer2Concept.statement)
     .replace('{conceptPrinciples}', layer2Concept.principles.map((p) => p.title).join('、'))
     .replace('{positioning}', layer2Concept.positioning)
@@ -136,8 +151,9 @@ async function generateLayer3Guidelines(
     .replace('{industryPreset}', industryPresetText);
 
   const response = await callClaude(prompt, {
-    maxTokens: 5000, // 出力が増えたので増加
+    maxTokens: 5000,
     systemPrompt: SYSTEM_PROMPT,
+    temperature: 0.7, // 多様性を確保
   });
 
   const result = extractJSON<Layer3Guidelines>(response);
@@ -201,10 +217,12 @@ export async function generateDesignGuideline(
   onProgress?: GenerationProgressCallback
 ): Promise<DesignGuideline> {
   const steps = [
-    { name: 'デザインゴール生成', progress: 20 },
-    { name: 'デザインコンセプト生成', progress: 40 },
-    { name: 'デザインガイドライン生成', progress: 60 },
+    { name: 'デザインゴール生成', progress: 15 },
+    { name: 'デザインコンセプト生成', progress: 30 },
+    { name: 'デザインガイドライン生成', progress: 50 },
+    { name: '参考画像取得', progress: 65 },
     { name: '参考実例生成', progress: 80 },
+    { name: 'ギャラリー事例取得', progress: 90 },
     { name: '一貫性チェック', progress: 100 },
   ];
 
@@ -220,16 +238,79 @@ export async function generateDesignGuideline(
 
   // 第3層：デザインガイドライン
   onProgress?.({ currentStep: steps[2].name, progress: steps[1].progress });
-  const layer3Guidelines = await generateLayer3Guidelines(context, layer1Goals, layer2Concept);
+  let layer3Guidelines = await generateLayer3Guidelines(context, layer1Goals, layer2Concept);
   onProgress?.({ currentStep: steps[2].name, progress: steps[2].progress });
 
-  // 参考実例
+  // 参考画像を取得してビジュアルガイドラインに追加
   onProgress?.({ currentStep: steps[3].name, progress: steps[2].progress });
-  const references = await generateReferences(context, layer1Goals, layer2Concept, worksData);
+  try {
+    const industry = context.businessModel?.industry || context.industry || '';
+    const [photoImages, illustrationImages] = await Promise.all([
+      getPhotoReferenceImages(
+        layer3Guidelines.visual.photo.tone,
+        layer3Guidelines.visual.photo.subjects.slice(0, 3),
+        { count: 3 }
+      ),
+      getIllustrationReferenceImages(
+        layer3Guidelines.visual.illustration.style,
+        layer3Guidelines.visual.illustration.tone,
+        { count: 3 }
+      ),
+    ]);
+
+    // 参考画像をガイドラインに追加
+    layer3Guidelines = {
+      ...layer3Guidelines,
+      visual: {
+        ...layer3Guidelines.visual,
+        photo: {
+          ...layer3Guidelines.visual.photo,
+          referenceImages: photoImages,
+        },
+        illustration: {
+          ...layer3Guidelines.visual.illustration,
+          referenceImages: illustrationImages,
+        },
+      },
+    };
+  } catch (error) {
+    console.warn('参考画像の取得に失敗しました:', error);
+  }
   onProgress?.({ currentStep: steps[3].name, progress: steps[3].progress });
 
-  // 一貫性チェック
+  // 参考実例
   onProgress?.({ currentStep: steps[4].name, progress: steps[3].progress });
+  let references = await generateReferences(context, layer1Goals, layer2Concept, worksData);
+  onProgress?.({ currentStep: steps[4].name, progress: steps[4].progress });
+
+  // ギャラリーサイトから実際の事例を取得
+  onProgress?.({ currentStep: steps[5].name, progress: steps[4].progress });
+  try {
+    const industry = context.businessModel?.industry || context.industry || '';
+    const galleryItems = await scrapeGallerySites({ industry, limit: 6 });
+    
+    if (galleryItems.length > 0) {
+      // ギャラリー事例を参考実例に追加
+      const gallerySites = galleryItems.map(item => ({
+        title: item.title,
+        url: item.url,
+        source: item.source,
+        similarity: item.industry || 'デザイン参考',
+        applicableElements: ['レイアウト', 'カラー使い', 'ビジュアル表現'],
+      }));
+
+      references = {
+        ...references,
+        gallerySites: [...(references.gallerySites || []), ...gallerySites],
+      };
+    }
+  } catch (error) {
+    console.warn('ギャラリー事例の取得に失敗しました:', error);
+  }
+  onProgress?.({ currentStep: steps[5].name, progress: steps[5].progress });
+
+  // 一貫性チェック
+  onProgress?.({ currentStep: steps[6].name, progress: steps[5].progress });
   const consistencyResult = checkGuidelineConsistency(layer3Guidelines);
   
   // 警告があればコンソールに出力（デバッグ用）
@@ -239,6 +320,32 @@ export async function generateDesignGuideline(
   }
   
   onProgress?.({ currentStep: '完了', progress: 100 });
+
+  // 競合分析データを構築
+  let competitorAnalysis: CompetitorAnalysis[] | undefined;
+  if (context.competitors && context.competitors.length > 0) {
+    competitorAnalysis = context.competitors.map((comp) => ({
+      name: comp.name,
+      url: comp.url,
+      marketPosition: comp.marketPosition,
+      design: {
+        overallTone: comp.design.overallTone,
+        colorScheme: {
+          primary: comp.design.colorScheme.primary,
+          secondary: comp.design.colorScheme.secondary,
+          accent: comp.design.colorScheme.accent,
+        },
+        typography: {
+          headingFont: comp.design.typography.headingFont,
+          bodyFont: comp.design.typography.bodyFont,
+          style: comp.design.typography.style,
+        },
+        visualStyle: comp.design.visualStyle,
+      },
+      strengths: comp.strengths,
+      weaknesses: comp.weaknesses,
+    }));
+  }
 
   // ガイドラインオブジェクトを構築
   const guideline: DesignGuideline = {
@@ -257,6 +364,7 @@ export async function generateDesignGuideline(
     layer2Concept,
     layer3Guidelines,
     references,
+    competitorAnalysis,
   };
 
   return guideline;

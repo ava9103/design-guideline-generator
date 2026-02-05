@@ -29,9 +29,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary:
         'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white focus:ring-emerald-500',
       secondary:
-        'bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 focus:ring-slate-500',
+        'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 focus:ring-slate-400',
       ghost:
-        'bg-transparent hover:bg-slate-700 text-slate-300 focus:ring-slate-500',
+        'bg-transparent hover:bg-slate-100 text-slate-600 focus:ring-slate-400',
     };
 
     const sizes = {

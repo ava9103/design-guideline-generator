@@ -9,9 +9,9 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ children, variant = 'default', className = '', ...props }, ref) => {
     const variants = {
-      default: 'bg-slate-800 border border-slate-700',
-      outlined: 'bg-transparent border-2 border-slate-600',
-      elevated: 'bg-slate-800 shadow-xl shadow-black/20',
+      default: 'bg-white border border-slate-200',
+      outlined: 'bg-transparent border-2 border-slate-300',
+      elevated: 'bg-white shadow-xl shadow-slate-200/50',
     };
 
     return (
@@ -45,7 +45,7 @@ export const CardTitle = forwardRef<
 >(({ children, className = '', ...props }, ref) => (
   <h3
     ref={ref}
-    className={`text-xl font-bold text-white ${className}`}
+    className={`text-xl font-bold text-slate-800 ${className}`}
     {...props}
   >
     {children}
