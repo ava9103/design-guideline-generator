@@ -1,5 +1,5 @@
 import type { AnalysisContext, AnalysisStep, AnalysisProgress, CompetitorDocument, CompetitorImportMode } from '@/types';
-import { analyzeSite } from './site-analyzer';
+import { analyzeSite, calculateAnalysisQuality } from './site-analyzer';
 import {
   businessModelStep,
   personaStep,
@@ -16,6 +16,27 @@ const ANALYSIS_STEPS: AnalysisStep[] = [
     isRequired: () => true,
     async execute(context) {
       const siteAnalysis = await analyzeSite(context.targetUrl);
+      
+      // 分析品質チェック
+      const quality = calculateAnalysisQuality(siteAnalysis);
+      if (quality.score < 70) {
+        console.warn(`⚠️ サイト分析品質が低い可能性があります (スコア: ${quality.score}/100)`);
+        console.warn('問題点:');
+        quality.issues.forEach(issue => console.warn(`  - ${issue}`));
+        console.warn('※ URLとタイトルを基に分析を続行しますが、結果の精度に影響する可能性があります。');
+      }
+      
+      // デバッグ用: 分析結果の概要をログ出力
+      console.log('サイト分析結果:', {
+        url: siteAnalysis.url,
+        title: siteAnalysis.title,
+        description: siteAnalysis.description?.substring(0, 100) + '...',
+        headingsCount: siteAnalysis.headings.length,
+        ctasCount: siteAnalysis.ctas.length,
+        mainContentLength: siteAnalysis.mainContent.length,
+        qualityScore: quality.score,
+      });
+      
       return { siteAnalysis };
     },
   },

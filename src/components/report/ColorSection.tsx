@@ -110,110 +110,44 @@ export function ColorSection({ color }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* 生成されたパレット */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-slate-800">生成されたパレット</h3>
+      {/* カラーパレット */}
+      <div>
+        <h3 className="text-sm font-medium text-slate-600 mb-3">プライマリー</h3>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {primaryColors.map((c, index) => (
+            <SimpleColorCard key={index} hex={c.hex} />
+          ))}
         </div>
 
-        {/* メインカラー */}
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-slate-600 mb-3">メインカラー</h4>
-          <div className="grid grid-cols-3 gap-4">
-            {primaryColors.map((c, index) => (
-              <PaletteColorCard
-                key={index}
-                hex={c.hex}
-                label={`Primary ${index + 1}`}
-              />
-            ))}
-          </div>
+        <h3 className="text-sm font-medium text-slate-600 mb-3">セカンダリー</h3>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {secondaryColors.map((c, index) => (
+            <SimpleColorCard key={index} hex={c.hex} />
+          ))}
         </div>
 
-        {/* セカンダリカラー */}
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-slate-600 mb-3">セカンダリカラー</h4>
-          <div className="grid grid-cols-3 gap-4">
-            {secondaryColors.map((c, index) => (
-              <PaletteColorCard
-                key={index}
-                hex={c.hex}
-                label={`Secondary ${index + 1}`}
-              />
-            ))}
-          </div>
+        <h3 className="text-sm font-medium text-slate-600 mb-3">アクセント</h3>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <SimpleColorCard hex={accentColor.hex} />
         </div>
 
-        {/* ニュートラルカラー */}
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-slate-600 mb-3">ニュートラルカラー</h4>
-          <div className="grid grid-cols-4 gap-4">
-            {neutralColors.map((c, index) => (
-              <PaletteColorCard
-                key={index}
-                hex={c.hex}
-                label={`Neutral ${index + 1}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* 使用例プレビュー */}
-        <div>
-          <h4 className="text-sm font-medium text-slate-600 mb-3">使用例プレビュー</h4>
-          <div className="rounded-lg border border-slate-200 p-6 bg-slate-50">
-            <div className="border-l-4 pl-4" style={{ borderColor: primaryColors[0]?.hex }}>
-              <h5 
-                className="text-xl font-bold mb-2"
-                style={{ color: primaryColors[0]?.hex }}
-              >
-                サンプルヘッドライン
-              </h5>
-              <p className="text-slate-600 mb-4">
-                これはカラーパレットの使用例です。メインカラーとセカンダリカラーを組み合わせることで、ブランドイメージに合ったデザインを作成できます。
-              </p>
-              <div className="flex gap-3">
-                <button
-                  className="px-4 py-2 rounded-md text-sm font-medium text-white"
-                  style={{ backgroundColor: primaryColors[0]?.hex }}
-                >
-                  プライマリボタン
-                </button>
-                <button
-                  className="px-4 py-2 rounded-md text-sm font-medium text-white"
-                  style={{ backgroundColor: secondaryColors[0]?.hex }}
-                >
-                  セカンダリボタン
-                </button>
-              </div>
-            </div>
-          </div>
+        <h3 className="text-sm font-medium text-slate-600 mb-3">ニュートラル</h3>
+        <div className="grid grid-cols-4 gap-3">
+          {neutralColors.map((c, index) => (
+            <SimpleColorCard key={index} hex={c.hex} />
+          ))}
         </div>
       </div>
 
-      {/* カラー設計エビデンス */}
-      <EvidencePanel
-        title="カラー設計の根拠"
-        evidences={[
-          {
-            type: 'data',
-            title: '60-30-10ルール',
-            description: '配色比率を最適化したLPでコンバージョン率18%向上。バランスの取れた配色は「安定感」「信頼感」を生み、情報整理を助けます。',
-            impact: 'CVR +18%',
-          },
-          {
-            type: 'psychological',
-            title: 'カラー一貫性の効果',
-            description: '微妙な色のブレ（#000000と#222222の混在等）で信頼性スコア8%低下。色の統一は「プロフェッショナル感」を高めます。',
-          },
-          {
-            type: 'abtest',
-            title: 'CTAカラーの最適化',
-            description: 'コントラスト比4.5:1以上で視認性が向上し、クリック率15%改善。アクセントカラーは背景との対比を明確にすることが重要です。',
-            impact: 'クリック率 +15%',
-          },
-        ]}
-      />
+      {/* 配色について（簡潔な説明を1箇所に集約） */}
+      {color.colorSystemRationale && (
+        <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+          <h4 className="text-sm font-semibold text-blue-800 mb-2">配色について</h4>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            {color.colorSystemRationale}
+          </p>
+        </div>
+      )}
 
       {/* 配色比率 */}
       <div>
@@ -264,48 +198,6 @@ export function ColorSection({ color }: Props) {
           </div>
         </div>
       </div>
-
-      {/* カラー詳細情報 */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">カラー詳細</h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          <ColorDetailCard
-            label="メインカラー"
-            name={mainColor.name}
-            hex={mainColor.hex}
-            effect={mainColor.psychologicalEffect}
-            usage={mainColor.usage}
-          />
-          <ColorDetailCard
-            label="サブカラー"
-            name={subColor.name}
-            hex={subColor.hex}
-            effect={subColor.psychologicalEffect}
-            usage={subColor.usage}
-          />
-          <ColorDetailCard
-            label="アクセントカラー"
-            name={accentColor.name}
-            hex={accentColor.hex}
-            effect={accentColor.psychologicalEffect}
-            usage={accentColor.usage}
-          />
-        </div>
-      </div>
-
-      {/* カラーシステム設計根拠 */}
-      {color.colorSystemRationale && (
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
-            カラーシステム設計根拠
-          </h3>
-          <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200">
-            <p className="text-sm text-slate-700 leading-relaxed">
-              {color.colorSystemRationale}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* テキストカラー */}
       <div>
@@ -363,24 +255,46 @@ export function ColorSection({ color }: Props) {
           </div>
         </div>
       )}
+
+      {/* カラー設計エビデンス */}
+      <EvidencePanel
+        title="カラー設計の根拠"
+        evidences={[
+          {
+            type: 'data',
+            title: '60-30-10ルール',
+            description: '配色比率を最適化したLPでコンバージョン率18%向上。バランスの取れた配色は「安定感」「信頼感」を生み、情報整理を助けます。',
+            impact: 'CVR +18%',
+          },
+          {
+            type: 'psychological',
+            title: 'カラー一貫性の効果',
+            description: '微妙な色のブレ（#000000と#222222の混在等）で信頼性スコア8%低下。色の統一は「プロフェッショナル感」を高めます。',
+          },
+          {
+            type: 'abtest',
+            title: 'CTAカラーの最適化',
+            description: 'コントラスト比4.5:1以上で視認性が向上し、クリック率15%改善。アクセントカラーは背景との対比を明確にすることが重要です。',
+            impact: 'クリック率 +15%',
+          },
+        ]}
+      />
     </div>
   );
 }
 
-// パレットカラーカードコンポーネント（図のような表示）
-interface PaletteColorCardProps {
+// シンプルなカラーカードコンポーネント（参考画像に準拠）
+interface SimpleColorCardProps {
   hex: string;
-  label: string;
 }
 
-function PaletteColorCard({ hex, label }: PaletteColorCardProps) {
+function SimpleColorCard({ hex }: SimpleColorCardProps) {
   const [copied, setCopied] = useState(false);
-  const rgb = hexToRgb(hex);
   const textColor = getContrastTextColor(hex);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(hex.toLowerCase());
+      await navigator.clipboard.writeText(hex.toUpperCase());
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
@@ -390,77 +304,24 @@ function PaletteColorCard({ hex, label }: PaletteColorCardProps) {
   
   return (
     <div 
-      className="group rounded-lg overflow-hidden bg-white border border-slate-200 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+      className="group cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
       onClick={handleCopy}
       title="クリックでHEXをコピー"
     >
       {/* カラープレビュー */}
       <div 
-        className="h-24 relative flex items-center justify-center"
+        className="h-20 rounded-lg relative flex items-center justify-center border border-slate-200"
         style={{ backgroundColor: hex }}
       >
         {copied ? (
-          <Check className="w-6 h-6" style={{ color: textColor }} />
+          <Check className="w-5 h-5" style={{ color: textColor }} />
         ) : (
-          <Copy className="w-6 h-6 opacity-0 group-hover:opacity-70 transition-opacity" style={{ color: textColor }} />
-        )}
-        {copied && (
-          <span 
-            className="absolute bottom-2 text-xs font-medium px-2 py-1 rounded"
-            style={{ color: textColor, backgroundColor: 'rgba(0,0,0,0.2)' }}
-          >
-            コピーしました
-          </span>
+          <Copy className="w-5 h-5 opacity-0 group-hover:opacity-70 transition-opacity" style={{ color: textColor }} />
         )}
       </div>
-      
-      {/* 情報 */}
-      <div className="p-3">
-        <span className="text-xs text-slate-500">{label}</span>
-        <div className="font-mono text-sm font-semibold text-slate-800 mt-1">
-          {hex.toLowerCase()}
-        </div>
-        <div className="text-xs text-slate-500 mt-0.5">
-          RGB({rgb.r}, {rgb.g}, {rgb.b})
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// カラー詳細カードコンポーネント
-interface ColorDetailCardProps {
-  label: string;
-  name: string;
-  hex: string;
-  effect: string;
-  usage: string[];
-}
-
-function ColorDetailCard({ label, name, hex, effect, usage }: ColorDetailCardProps) {
-  return (
-    <div className="rounded-lg overflow-hidden bg-slate-50 border border-slate-200">
-      <div className="h-4" style={{ backgroundColor: hex }} />
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-slate-500">{label}</span>
-          <span className="text-xs font-mono text-slate-500">{hex}</span>
-        </div>
-        <h4 className="text-base font-bold text-slate-800 mb-2">{name}</h4>
-        <p className="text-sm text-slate-600 mb-3 leading-relaxed">{effect}</p>
-        <div>
-          <span className="text-xs text-slate-500">使用箇所:</span>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {usage.map((u, i) => (
-              <span
-                key={i}
-                className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700"
-              >
-                {u}
-              </span>
-            ))}
-          </div>
-        </div>
+      {/* HEX値のみ */}
+      <div className="mt-2 font-mono text-xs text-slate-600 text-center">
+        {hex.toUpperCase()}
       </div>
     </div>
   );

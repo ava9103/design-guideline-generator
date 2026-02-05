@@ -128,6 +128,9 @@ export interface CompetitorAnalysis {
   description: string;
   marketPosition: 'リーダー' | 'チャレンジャー' | 'フォロワー' | 'ニッチャー';
 
+  // ポジショニング分類（訴求軸による分類）
+  positioningType?: 'price' | 'authority' | 'design' | 'content' | 'campaign';
+
   strengths: string[];
   weaknesses: string[];
 
@@ -147,11 +150,29 @@ export interface CompetitorAnalysis {
     layoutPattern: string;
   };
 
+  // 権威性要素（信頼性訴求の分析用）
+  authorityElements?: {
+    hasNo1Badge: boolean;
+    hasMediaLogos: boolean;
+    hasAwards: boolean;
+    clientCountDisplay: 'number' | 'logos' | 'none';
+  };
+
+  // 体験談スタイル（Voice/テスティモニアルの分析用）
+  testimonialStyle?: {
+    photoType: 'real' | 'stock' | 'icon' | 'none';
+    hasVideo: boolean;
+    count: number;
+  };
+
   cvrElements: {
     ctaStyle: string;
     ctaPlacement: string[];
     trustElements: string[];
     urgencyTactics: string[];
+    // CTAスタイル詳細
+    ctaButtonStyle?: 'rounded' | 'square' | 'gradient' | 'outline';
+    hasMicroCopy?: boolean;
   };
 
   differentiators: string[];

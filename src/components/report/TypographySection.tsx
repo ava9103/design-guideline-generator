@@ -9,8 +9,80 @@ interface Props {
 }
 
 export function TypographySection({ typography }: Props) {
+  // フォント名を結合（和文, 欧文）
+  const headingFont = `${typography.mainFont.japanese.name}, ${typography.mainFont.western.name}`;
+  const bodyFont = `${typography.subFont.japanese.name}, ${typography.subFont.western.name}`;
+
+  // 選定理由をまとめる（長文化を避けるため、メインの理由のみ）
+  const fontRationale = typography.mainFont.japanese.reason;
+
   return (
     <div className="space-y-8">
+      {/* フォント表示（シンプル化） */}
+      <div className="space-y-4">
+        <div>
+          <span className="text-sm text-slate-500">見出しフォント</span>
+          <div className="text-xl font-bold text-slate-800 mt-1">{headingFont}</div>
+        </div>
+        <div>
+          <span className="text-sm text-slate-500">本文フォント</span>
+          <div className="text-xl font-bold text-slate-800 mt-1">{bodyFont}</div>
+        </div>
+        {typography.numberFont && (
+          <div>
+            <span className="text-sm text-slate-500">数字強調用</span>
+            <div className="text-xl font-bold text-slate-800 mt-1">{typography.numberFont.name}</div>
+          </div>
+        )}
+        
+        {/* フォントリンク */}
+        <div className="flex flex-wrap gap-3 mt-2">
+          {typography.mainFont.japanese.googleFontsUrl && (
+            <a
+              href={typography.mainFont.japanese.googleFontsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              Google Fonts <ExternalLink size={12} />
+            </a>
+          )}
+          {typography.mainFont.japanese.adobeFontsUrl && (
+            <a
+              href={typography.mainFont.japanese.adobeFontsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1"
+            >
+              Adobe Fonts <ExternalLink size={12} />
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* サイズスケール */}
+      <div>
+        <h3 className="text-sm font-medium text-slate-600 mb-3">サイズスケール</h3>
+        <div className="space-y-2 bg-slate-50 rounded-lg p-4 border border-slate-200">
+          {typography.sizeSystem.map((row, index) => (
+            <div key={index} className="flex justify-between text-sm py-1 border-b border-slate-100 last:border-0">
+              <span className="text-slate-700">{row.element}</span>
+              <span className="text-slate-500 font-mono">{row.pc}/{row.lineHeight}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 書体について（簡潔な説明を1箇所に集約） */}
+      {fontRationale && (
+        <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+          <h4 className="text-sm font-semibold text-blue-800 mb-2">書体について</h4>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            {fontRationale}
+          </p>
+        </div>
+      )}
+
       {/* タイポグラフィ設計エビデンス */}
       <EvidencePanel
         title="タイポグラフィ設計の根拠"
@@ -35,171 +107,6 @@ export function TypographySection({ typography }: Props) {
           },
         ]}
       />
-
-      {/* メインフォント */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">
-          メインフォント（見出し用）
-        </h3>
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* 和文 */}
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-500">和文</span>
-              <div className="flex gap-2">
-                {typography.mainFont.japanese.googleFontsUrl && (
-                  <a
-                    href={typography.mainFont.japanese.googleFontsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  >
-                    Google Fonts <ExternalLink size={12} />
-                  </a>
-                )}
-                {typography.mainFont.japanese.adobeFontsUrl && (
-                  <a
-                    href={typography.mainFont.japanese.adobeFontsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1"
-                  >
-                    Adobe Fonts <ExternalLink size={12} />
-                  </a>
-                )}
-              </div>
-            </div>
-            <h4 className="text-xl font-bold text-slate-800 mb-2">
-              {typography.mainFont.japanese.name}
-            </h4>
-            <p className="text-sm text-slate-600 mb-3 leading-relaxed">
-              {typography.mainFont.japanese.reason}
-            </p>
-            {typography.mainFont.japanese.weights && (
-              <div className="space-y-1">
-                {typography.mainFont.japanese.weights.map((w, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span className="text-slate-500">{w.use}</span>
-                    <span className="text-slate-700">{w.weight}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 欧文 */}
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-500">欧文</span>
-              {typography.mainFont.western.googleFontsUrl && (
-                <a
-                  href={typography.mainFont.western.googleFontsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                >
-                  Google Fonts <ExternalLink size={12} />
-                </a>
-              )}
-            </div>
-            <h4 className="text-xl font-bold text-slate-800 mb-2">
-              {typography.mainFont.western.name}
-            </h4>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              {typography.mainFont.western.reason}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* サブフォント */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">
-          サブフォント（本文用）
-        </h3>
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* 和文 */}
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-500">和文</span>
-              {typography.subFont.japanese.googleFontsUrl && (
-                <a
-                  href={typography.subFont.japanese.googleFontsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                >
-                  Google Fonts <ExternalLink size={12} />
-                </a>
-              )}
-            </div>
-            <h4 className="text-xl font-bold text-slate-800 mb-2">
-              {typography.subFont.japanese.name}
-            </h4>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              {typography.subFont.japanese.reason}
-            </p>
-          </div>
-
-          {/* 欧文 */}
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <span className="text-sm text-slate-500">欧文</span>
-            <h4 className="text-xl font-bold text-slate-800 mb-2 mt-2">
-              {typography.subFont.western.name}
-            </h4>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              {typography.subFont.western.reason}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 数字フォント */}
-      {typography.numberFont && (
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
-            数字強調用フォント
-          </h3>
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 max-w-md">
-            <h4 className="text-xl font-bold text-slate-800 mb-2">
-              {typography.numberFont.name}
-            </h4>
-            <p className="text-sm text-slate-600 leading-relaxed">{typography.numberFont.reason}</p>
-          </div>
-        </div>
-      )}
-
-      {/* サイズシステム */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">
-          フォントサイズシステム
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-slate-600 font-medium">要素</th>
-                <th className="text-left py-3 px-4 text-slate-600 font-medium">PC</th>
-                <th className="text-left py-3 px-4 text-slate-600 font-medium">SP</th>
-                <th className="text-left py-3 px-4 text-slate-600 font-medium">行間</th>
-                <th className="text-left py-3 px-4 text-slate-600 font-medium">用途</th>
-              </tr>
-            </thead>
-            <tbody>
-              {typography.sizeSystem.map((row, index) => (
-                <tr key={index} className="border-b border-slate-100">
-                  <td className="py-3 px-4 text-slate-800 font-medium">{row.element}</td>
-                  <td className="py-3 px-4 text-slate-700">{row.pc}</td>
-                  <td className="py-3 px-4 text-slate-700">{row.sp}</td>
-                  <td className="py-3 px-4 text-slate-700">{row.lineHeight}</td>
-                  <td className="py-3 px-4 text-slate-600">{row.usage}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
   );
 }

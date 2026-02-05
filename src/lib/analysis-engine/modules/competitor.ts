@@ -49,6 +49,16 @@ CTA: {ctas}
 URL: {targetUrl}
 業界: {industry}
 
+【分析の観点】
+競合のポジショニングと訴求軸を把握し、デザインガイドライン策定の判断材料を収集してください。
+
+訴求軸の分類基準：
+- price: 安さ、コスパ、割引を強調
+- authority: No.1実績、タレント起用、受賞歴、メディア掲載を強調
+- design: ブランドイメージ、世界観、独自性を重視
+- content: 情報量、網羅性、機能説明の充実
+- campaign: 期間限定、特典、緊急性を強調
+
 【出力形式】
 以下のJSON形式で競合分析を出力してください：
 
@@ -56,6 +66,7 @@ URL: {targetUrl}
   "name": "サービス名",
   "description": "サービス概要（1-2文）",
   "marketPosition": "リーダー または チャレンジャー または フォロワー または ニッチャー",
+  "positioningType": "price または authority または design または content または campaign",
   "strengths": ["強み1", "強み2", "強み3"],
   "weaknesses": ["弱み1", "弱み2"],
   "design": {
@@ -73,9 +84,22 @@ URL: {targetUrl}
     "visualStyle": "ビジュアルスタイルの説明",
     "layoutPattern": "レイアウトパターン（例：1カラム、2カラム、カード型）"
   },
+  "authorityElements": {
+    "hasNo1Badge": true/false（No.1バッジや○○部門1位などの表示があるか）,
+    "hasMediaLogos": true/false（TV、雑誌、有名メディアのロゴ掲載があるか）,
+    "hasAwards": true/false（受賞歴の掲載があるか）,
+    "clientCountDisplay": "number（導入社数を数字で強調）または logos（クライアントロゴ羅列）または none"
+  },
+  "testimonialStyle": {
+    "photoType": "real（実写写真）または stock（素材写真）または icon（アイコン/イラスト）または none（写真なし）",
+    "hasVideo": true/false（動画の体験談があるか）,
+    "count": 掲載されている体験談の概数
+  },
   "cvrElements": {
     "ctaStyle": "CTAのスタイル（例：目立つ色、テキストリンク）",
     "ctaPlacement": ["配置1", "配置2"],
+    "ctaButtonStyle": "rounded（角丸）または square（四角）または gradient（グラデーション）または outline（枠線）",
+    "hasMicroCopy": true/false（ボタン近くに「30秒で完了」等の補足テキストがあるか）,
     "trustElements": ["信頼性要素1", "信頼性要素2"],
     "urgencyTactics": ["緊急性訴求があれば記載"]
   },
@@ -126,7 +150,7 @@ export async function analyzeCompetitor(
     .replace('{targetUrl}', siteAnalysis?.url || '')
     .replace('{industry}', businessModel?.industry || industry || '不明');
 
-  const response = await callClaude(prompt, { maxTokens: 2000 });
+  const response = await callClaude(prompt, { maxTokens: 2500 });
   const result = extractJSON<Omit<CompetitorAnalysis, 'url'>>(response);
 
   if (!result) {

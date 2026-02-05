@@ -26,6 +26,53 @@ function createEmptyAnalysis(url: string, reason?: string): SiteAnalysis {
   };
 }
 
+// サイト分析結果の品質スコアを計算（0-100）
+export function calculateAnalysisQuality(analysis: SiteAnalysis): {
+  score: number;
+  issues: string[];
+} {
+  const issues: string[] = [];
+  let score = 100;
+
+  // タイトルのチェック
+  if (!analysis.title || analysis.title.includes('取得できませんでした') || analysis.title.includes('分析に失敗')) {
+    score -= 30;
+    issues.push('サイトタイトルが取得できませんでした');
+  }
+
+  // メインコンテンツのチェック
+  if (!analysis.mainContent || analysis.mainContent.length < 100) {
+    score -= 40;
+    issues.push('サイトのメインコンテンツが取得できませんでした（JavaScriptで動的に生成されている可能性があります）');
+  } else if (analysis.mainContent.length < 500) {
+    score -= 20;
+    issues.push('サイトのコンテンツが少なく、分析精度が低下する可能性があります');
+  }
+
+  // 見出しのチェック
+  if (analysis.headings.length === 0) {
+    score -= 15;
+    issues.push('見出し（h1-h4）が取得できませんでした');
+  }
+
+  // CTAのチェック
+  if (analysis.ctas.length === 0) {
+    score -= 10;
+    issues.push('CTAボタンが検出できませんでした');
+  }
+
+  // 説明文のチェック
+  if (!analysis.description) {
+    score -= 5;
+    issues.push('メタディスクリプションが設定されていません');
+  }
+
+  return {
+    score: Math.max(0, score),
+    issues,
+  };
+}
+
 // ブラウザのようなヘッダーを生成
 function getBrowserHeaders(url: string): HeadersInit {
   const referer = new URL(url).origin;
