@@ -103,7 +103,21 @@ URL: {targetUrl}
     "trustElements": ["信頼性要素1", "信頼性要素2"],
     "urgencyTactics": ["緊急性訴求があれば記載"]
   },
-  "differentiators": ["差別化ポイント1", "差別化ポイント2"]
+  "differentiators": [
+    {
+      "category": "価格/品質/体験/信頼性/独自性/ターゲット特化/利便性 から選択",
+      "point": "この競合の強み・差別化ポイント（具体的に）",
+      "evidence": "LPでどう表現されているか（例：FVに「業界最安値」のバッジ）",
+      "threat": "自社にとっての脅威度（high/medium/low）"
+    }
+  ],
+  "weaknesses_detail": [
+    {
+      "area": "弱みの領域（デザイン/信頼性/価格/UX等）",
+      "description": "具体的な弱み",
+      "opportunity": "自社がこの弱みをどう攻略できるか"
+    }
+  ]
 }
 
 JSONのみを出力してください。
@@ -148,7 +162,8 @@ export async function analyzeCompetitor(
     .replace('{colors}', competitorSite.colors.slice(0, 10).join(', ') || '不明')
     .replace('{content}', competitorSite.mainContent.slice(0, 2000))
     .replace('{targetUrl}', siteAnalysis?.url || '')
-    .replace('{industry}', businessModel?.industry || industry || '不明');
+    // ユーザー指定の業界を優先
+    .replace('{industry}', industry || businessModel?.industry || '不明');
 
   const response = await callClaude(prompt, { maxTokens: 2500 });
   const result = extractJSON<Omit<CompetitorAnalysis, 'url'>>(response);
@@ -241,7 +256,8 @@ export const competitorStep: AnalysisStep = {
     }
 
     if (urlsToAnalyze.length === 0) {
-      const industryName = businessModel?.industry || industry || '不明';
+      // ユーザー指定の業界を優先（context.industryが先）
+      const industryName = industry || businessModel?.industry || '不明';
       
       // まずBrave APIで類似サイトを検索（related:演算子を使用）
       console.log('Searching for related sites via Brave API...');

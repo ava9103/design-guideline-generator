@@ -1,7 +1,9 @@
-import { HfInference } from '@huggingface/inference';
+import Anthropic from '@anthropic-ai/sdk';
 
-// HuggingFace Inference API（無料）
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+// Anthropic Claude API
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 export interface ClaudeMessage {
   role: 'user' | 'assistant';
@@ -12,7 +14,7 @@ export interface ClaudeMessage {
 async function callWithRetry<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
-  delayMs: number = 5000
+  delayMs: number = 2000
 ): Promise<T> {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -41,26 +43,24 @@ export async function callClaude(
     systemPrompt?: string;
   }
 ): Promise<string> {
-  const { temperature = 0.3, systemPrompt, maxTokens = 1500 } = options || {};
-
-  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
-  
-  if (systemPrompt) {
-    messages.push({ role: 'system', content: systemPrompt });
-  }
-  messages.push({ role: 'user', content: prompt });
+  const { temperature = 0.3, systemPrompt, maxTokens = 4096 } = options || {};
 
   return callWithRetry(async () => {
-    // Novita AIプロバイダーを使用（無料・安定）
-    const response = await hf.chatCompletion({
-      model: 'meta-llama/Llama-3.1-8B-Instruct',
-      messages: messages,
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
       max_tokens: maxTokens,
       temperature: temperature,
-      provider: 'novita',
+      system: systemPrompt || '',
+      messages: [
+        { role: 'user', content: prompt }
+      ],
     });
-    
-    return response.choices[0]?.message?.content || '';
+
+    const content = response.content[0];
+    if (content.type === 'text') {
+      return content.text;
+    }
+    return '';
   });
 }
 
@@ -72,28 +72,25 @@ export async function callClaudeWithHistory(
     systemPrompt?: string;
   }
 ): Promise<string> {
-  const { temperature = 0.3, systemPrompt, maxTokens = 1500 } = options || {};
-
-  const chatMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
-  
-  if (systemPrompt) {
-    chatMessages.push({ role: 'system', content: systemPrompt });
-  }
-  
-  for (const msg of messages) {
-    chatMessages.push({ role: msg.role, content: msg.content });
-  }
+  const { temperature = 0.3, systemPrompt, maxTokens = 4096 } = options || {};
 
   return callWithRetry(async () => {
-    const response = await hf.chatCompletion({
-      model: 'meta-llama/Llama-3.1-8B-Instruct',
-      messages: chatMessages,
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
       max_tokens: maxTokens,
       temperature: temperature,
-      provider: 'novita',
+      system: systemPrompt || '',
+      messages: messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })),
     });
-    
-    return response.choices[0]?.message?.content || '';
+
+    const content = response.content[0];
+    if (content.type === 'text') {
+      return content.text;
+    }
+    return '';
   });
 }
 

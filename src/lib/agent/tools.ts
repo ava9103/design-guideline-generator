@@ -113,14 +113,37 @@ export const AGENT_TOOLS: AgentTool[] = [
       try {
         const summary = params.site_analysis_summary as string;
         
+        // ユーザー指定の業界情報を取得
+        const userIndustry = context.industry;
+        const userIndustryText = userIndustry 
+          ? `「${userIndustry}」（ユーザーが明示的に指定 - これを最優先で使用してください）`
+          : '指定なし（サイト情報から推定してください）';
+        
         const prompt = `
 以下のサイト情報から、ビジネスモデルを推定してJSON形式で出力してください：
 
+【最重要：ユーザー指定の業界情報】
+ユーザーが指定した業界: ${userIndustryText}
+
+※ユーザーが業界を指定している場合は、その業界を必ず使用してください。
+サイトコンテンツと異なっていても、ユーザー指定を最優先します。
+
+【サイト情報】
 ${summary}
+
+【業界別の典型的なビジネスモデル】
+- ピラティス・ヨガ・フィットネス・パーソナルジム・美容サービス
+  → 業界: 健康・フィットネス または 美容・ヘルスケアサービス, B2C
+- クリニック・歯科・整体・医療
+  → 業界: 医療・ヘルスケア, B2C
+- IT・SaaS・ソフトウェア
+  → 業界: IT・情報通信, B2B/B2C
+- コンサルティング
+  → 業界: 経営・コンサルティング, B2B
 
 【出力形式】
 {
-  "industry": "業界名",
+  "industry": "業界名（ユーザー指定があればそれを使用）",
   "subCategory": "サブカテゴリ",
   "serviceType": "B2B または B2C または B2B2C または C2C",
   "revenueModel": "収益モデル",
@@ -139,11 +162,17 @@ JSONのみを出力してください。
           throw new Error('ビジネスモデルの解析に失敗しました');
         }
 
-        context.businessModel = businessModel as typeof context.businessModel;
+        // ユーザー指定の業界を強制的に上書き（最優先）
+        const typedBusinessModel = businessModel as typeof context.businessModel;
+        if (userIndustry && typedBusinessModel) {
+          typedBusinessModel.industry = userIndustry;
+        }
+        
+        context.businessModel = typedBusinessModel;
 
         return {
           success: true,
-          data: businessModel,
+          data: context.businessModel,
           summary: `ビジネスモデルを推定しました：業界「${context.businessModel?.industry}」、形態「${context.businessModel?.serviceType}」`,
         };
       } catch (error) {

@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
       success: true,
       guideline,
       analysisContext: {
-        industry: analysisContext.businessModel?.industry || analysisContext.industry,
+        // ユーザー指定の業界を優先
+        industry: analysisContext.industry || analysisContext.businessModel?.industry,
         serviceType: analysisContext.businessModel?.serviceType,
         targetAudience: analysisContext.persona?.primary.name || analysisContext.targetAudience,
         competitorsAnalyzed: analysisContext.competitors?.length || 0,

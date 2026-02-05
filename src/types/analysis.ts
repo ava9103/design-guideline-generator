@@ -175,7 +175,18 @@ export interface CompetitorAnalysis {
     hasMicroCopy?: boolean;
   };
 
-  differentiators: string[];
+  differentiators: string[] | {
+    category?: string;
+    point: string;
+    evidence?: string;
+    threat?: 'high' | 'medium' | 'low';
+  }[];
+
+  weaknesses_detail?: {
+    area: string;
+    description: string;
+    opportunity: string;
+  }[];
 }
 
 // デザイントレンド分析

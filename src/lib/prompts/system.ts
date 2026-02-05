@@ -165,7 +165,11 @@ URL: {targetUrl}
 {
   "differentiationPoints": [
     {
-      "title": "差別化ポイントのタイトル（簡潔に1行で）"
+      "category": "differentiation_category（以下から選択）",
+      "title": "差別化ポイントの具体的な内容",
+      "competitorGap": "競合との具体的な差（例：競合A社は○○だが、自社は△△）",
+      "designImplication": "この差別化をLPデザインで表現するための具体的施策",
+      "expectedImpact": "この施策によるCVRへの期待効果"
     }
   ],
   "impressionKeywords": ["キーワード1", "キーワード2", "キーワード3", "キーワード4", "キーワード5"],
@@ -176,7 +180,18 @@ URL: {targetUrl}
 
 ■ differentiationPointsについて：
 - 3-5項目を記述
-- タイトルは簡潔に1行で表現（長い説明は不要）
+- categoryは以下から選択：
+  * price_value: 価格・コスパでの優位性（例：初回無料、回数券割引）
+  * quality_expertise: 品質・専門性での優位性（例：資格保有者のみ、独自メソッド）
+  * experience_ux: 体験・UXでの優位性（例：完全個室、予約のしやすさ）
+  * trust_credibility: 信頼性・実績での優位性（例：導入実績、メディア掲載）
+  * unique_proposition: 独自の価値提案（例：業界初、特許技術）
+  * target_focus: ターゲット特化（例：産後ママ専門、シニア向け）
+  * convenience: 利便性での優位性（例：駅近、営業時間、オンライン対応）
+- competitorGapは競合との具体的な違いを明記（抽象的な表現は禁止）
+- designImplicationはデザインでの具体的な表現方法を提案
+  NG例：「ユニークなデザイン」「ストーリーテリング」「ブランドロゴの使用」
+  OK例：「導入実績をFV直下に数値で大きく表示（48px以上）」「3ステップの利用フローを図解で見せる」
 
 ■ impressionKeywordsについて：
 - 5-7個のキーワードを選定
@@ -208,13 +223,20 @@ export const LAYER2_CONCEPT_PROMPT = `
   "statement": "コンセプトステートメント（1-2文で核となる価値と表現方法を記述）",
   "principles": [
     {
-      "title": "原則のタイトル（簡潔に1行で、例：派手な演出より静かな説得力）"
+      "title": "原則のタイトル（簡潔に1行で、例：派手な演出より静かな説得力）",
+      "implementation": "この原則をLPで具体的にどう実装するか（例：FVに実績数値を3つ並べる、CTAは画面下部に固定表示）"
     }
   ],
   "positioning": "本LPの位置づけ（1文で簡潔に）",
+  "keyVisualStrategy": {
+    "heroSection": "FV（ファーストビュー）で最も強調すべき要素と理由",
+    "trustSignals": "信頼性を示すために使用すべき要素（実績数値、メディアロゴ、顧客の声など）",
+    "ctaStrategy": "CVを促すためのCTA配置と文言の方針"
+  },
   "prohibitions": [
     {
-      "item": "禁止事項（簡潔に、例：過度な煽り文句の連発）"
+      "item": "禁止事項（簡潔に、例：過度な煽り文句の連発）",
+      "reason": "禁止する理由（ターゲット心理や競合差別化の観点から）"
     }
   ]
 }
@@ -222,11 +244,17 @@ export const LAYER2_CONCEPT_PROMPT = `
 【品質要件】
 ■ principlesについて：
 - 4-5項目を記述
-- タイトルは簡潔に1行で（長い説明は不要）
+- タイトルは簡潔に1行で
+- implementationは具体的なデザイン施策を記載（抽象的な表現は禁止）
+
+■ keyVisualStrategyについて：
+- 競合との差別化を意識した具体的な戦略を記述
+- 「ストーリーテリング」「ブランド感」などの抽象表現は禁止
+- OK例：「導入社数2,000社をFVに72pxで表示」「3ステップの流れを図解で見せる」
 
 ■ prohibitionsについて：
 - 3-4項目を記述
-- 簡潔に禁止事項のみ記載
+- reasonも記載して、なぜ禁止なのかを明確に
 
 JSONのみを出力してください。
 `;

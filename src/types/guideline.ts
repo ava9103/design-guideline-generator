@@ -62,11 +62,25 @@ export interface GuidelineInput {
   uploadedFiles?: string[];
 }
 
+// 差別化カテゴリの型定義
+export type DifferentiationCategory = 
+  | 'price_value'        // 価格・コスパでの優位性
+  | 'quality_expertise'  // 品質・専門性での優位性
+  | 'experience_ux'      // 体験・UXでの優位性
+  | 'trust_credibility'  // 信頼性・実績での優位性
+  | 'unique_proposition' // 独自の価値提案
+  | 'target_focus'       // ターゲット特化
+  | 'convenience';       // 利便性での優位性
+
 // 第1層：デザインゴール
 export interface Layer1Goals {
   differentiationPoints: {
+    category?: DifferentiationCategory;
     title: string;
-    reason: string;
+    reason?: string;
+    competitorGap?: string;       // 競合との具体的な差
+    designImplication?: string;    // デザインで表現するための具体的施策
+    expectedImpact?: string;       // CVRへの期待効果
   }[];
 
   impressionKeywords: string[];
@@ -93,14 +107,21 @@ export interface Layer2Concept {
 
   principles: {
     title: string;
-    reason: string;
+    reason?: string;
+    implementation?: string;  // 具体的な実装方法
   }[];
 
   positioning: string;
 
+  keyVisualStrategy?: {
+    heroSection: string;     // FVで最も強調すべき要素
+    trustSignals: string;    // 信頼性を示す要素
+    ctaStrategy: string;     // CTA戦略
+  };
+
   prohibitions: {
     item: string;
-    reason: string;
+    reason?: string;
   }[];
 }
 

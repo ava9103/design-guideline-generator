@@ -52,7 +52,8 @@ async function generateLayer1Goals(
     .replace('{targetUrl}', siteAnalysis?.url || '')
     .replace('{targetTitle}', siteAnalysis?.title || '')
     .replace('{targetDescription}', siteAnalysis?.description || '')
-    .replace('{industry}', businessModel?.industry || context.industry || '不明')
+    // ユーザー指定の業界を優先
+    .replace('{industry}', context.industry || businessModel?.industry || '不明')
     .replace('{serviceType}', businessModel?.serviceType || '不明')
     .replace('{conversionGoal}', businessModel?.conversionGoal || '不明')
     .replace('{competitiveAdvantage}', businessModel?.competitiveAdvantage?.join('、') || '不明')
@@ -91,11 +92,22 @@ async function generateLayer2Concept(
     ?.map((c) => `- ${c.name}: ${c.design.overallTone}`)
     .join('\n') || 'なし';
 
+  // 差別化ポイントを詳細形式で表示
+  const differentiationSummary = layer1Goals.differentiationPoints
+    .map((d) => {
+      const parts = [d.title];
+      if (d.competitorGap) parts.push(`競合との差: ${d.competitorGap}`);
+      if (d.designImplication) parts.push(`デザイン施策: ${d.designImplication}`);
+      return parts.join(' / ');
+    })
+    .join('\n');
+
   const prompt = LAYER2_CONCEPT_PROMPT
-    .replace('{differentiationPoints}', layer1Goals.differentiationPoints.map((d) => d.title).join('、'))
+    .replace('{differentiationPoints}', differentiationSummary)
     .replace('{impressionKeywords}', layer1Goals.impressionKeywords.join(' / '))
     .replace('{targetTitle}', siteAnalysis?.title || '')
-    .replace('{industry}', businessModel?.industry || context.industry || '不明')
+    // ユーザー指定の業界を優先
+    .replace('{industry}', context.industry || businessModel?.industry || '不明')
     .replace('{targetAudience}', persona?.primary.name || context.targetAudience || '不明')
     .replace('{conversionGoal}', businessModel?.conversionGoal || '不明')
     .replace('{competitorDesignTones}', competitorDesignTones);
@@ -128,8 +140,8 @@ async function generateLayer3Guidelines(
     )
     .join('\n') || 'なし';
 
-  // 業種別プリセットを取得
-  const industry = businessModel?.industry || context.industry || '';
+  // 業種別プリセットを取得（ユーザー指定を優先）
+  const industry = context.industry || businessModel?.industry || '';
   const industryPreset = getIndustryPreset(industry);
   const industryPresetText = industryPreset
     ? formatPresetForPrompt(industryPreset)
@@ -166,8 +178,14 @@ ${fontCategory ? `
   const serviceDescription = siteAnalysis?.description || 
     (siteAnalysis?.headings?.slice(0, 5).map(h => h.text).join('、')) || 
     '不明';
+  // 差別化ポイントを詳細形式で表示（Layer3用）
   const differentiationPoints = layer1Goals.differentiationPoints
-    ?.map(d => `${d.title}（${d.reason}）`)
+    ?.map(d => {
+      const parts = [`【${d.category || '差別化'}】${d.title}`];
+      if (d.competitorGap) parts.push(`競合との差: ${d.competitorGap}`);
+      if (d.designImplication) parts.push(`推奨施策: ${d.designImplication}`);
+      return parts.join('\n  ');
+    })
     .join('\n') || '不明';
 
   // ナレッジベースを統合したプリセットテキスト
@@ -224,7 +242,8 @@ async function generateReferences(
   const prompt = REFERENCES_PROMPT
     .replace('{impressionKeywords}', layer1Goals.impressionKeywords.join(' / '))
     .replace('{conceptStatement}', layer2Concept.statement)
-    .replace('{industry}', businessModel?.industry || context.industry || '不明')
+    // ユーザー指定の業界を優先
+    .replace('{industry}', context.industry || businessModel?.industry || '不明')
     .replace('{worksData}', worksData || 'ポストスケイプの実績情報は現在取得できません')
     .replace('{competitorDesigns}', competitorDesigns);
 
@@ -288,7 +307,8 @@ export async function generateDesignGuideline(
   // 参考画像を取得してビジュアルガイドラインに追加
   onProgress?.({ currentStep: steps[3].name, progress: steps[2].progress });
   try {
-    const industry = context.businessModel?.industry || context.industry || '';
+    // ユーザー指定の業界を優先
+    const industry = context.industry || context.businessModel?.industry || '';
     const [photoImages, illustrationImages] = await Promise.all([
       getPhotoReferenceImages(
         layer3Guidelines.visual.photo.tone,
@@ -330,7 +350,8 @@ export async function generateDesignGuideline(
   // ギャラリーサイトから実際の事例を取得
   onProgress?.({ currentStep: steps[5].name, progress: steps[4].progress });
   try {
-    const industry = context.businessModel?.industry || context.industry || '';
+    // ユーザー指定の業界を優先
+    const industry = context.industry || context.businessModel?.industry || '';
     const galleryItems = await scrapeGallerySites({ industry, limit: 6 });
     
     if (galleryItems.length > 0) {
