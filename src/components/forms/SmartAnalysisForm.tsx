@@ -368,9 +368,9 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
             <Sparkles className="text-white" size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">LPデザインガイドライン生成</h2>
+            <h2 className="text-2xl font-bold text-slate-800">デザインガイドライン生成</h2>
             <p className="text-slate-600 text-sm">
-              LPのURLと情報を入力して、CVR向上に最適なデザインガイドラインを作成します
+              サービス/商品のURLを入力して、効果的なLPを作成するためのデザインガイドラインを生成します
             </p>
           </div>
         </div>
@@ -382,7 +382,7 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
               <div className="flex items-center gap-2 mb-2">
                 <Globe size={18} className="text-emerald-600" />
                 <label className="text-sm font-medium text-slate-700">
-                  対象LP（ランディングページ）のURL <span className="text-red-500">*</span>
+                  サービス/商品のウェブサイトURL <span className="text-red-500">*</span>
                 </label>
               </div>
               <Input
@@ -394,11 +394,11 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
                   },
                 })}
                 type="url"
-                placeholder="https://example.com/lp"
+                placeholder="https://example.com"
                 error={errors.targetUrl?.message}
               />
               <p className="mt-1 text-xs text-slate-500">
-                ※ デザインガイドラインを作成したいLPのURLを入力してください
+                ※ これからLPを作成するサービス/商品のウェブサイトURLを入力してください
               </p>
             </div>
 
@@ -435,10 +435,10 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
               helperText="わかっている範囲で入力してください。空欄の場合は自動推定します。"
             />
 
-            {/* 競合LP URL（任意） */}
+            {/* 競合サイト URL（任意） */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                競合LPのURL（任意・最大3件）
+                競合サイトのURL（任意・最大3件）
               </label>
               <div className="space-y-2">
                 {competitorUrls.map((url, index) => (
@@ -446,7 +446,7 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
                     <Input
                       value={url}
                       onChange={(e) => updateCompetitorUrl(index, e.target.value)}
-                      placeholder="https://competitor.com/lp"
+                      placeholder="https://competitor.com"
                       className="flex-1"
                     />
                     {competitorUrls.length > 1 && (
@@ -468,11 +468,11 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
                   className="mt-2 flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-700"
                 >
                   <Plus size={16} />
-                  競合LPを追加
+                  競合サイトを追加
                 </button>
               )}
               <p className="mt-1 text-xs text-slate-500">
-                ※ 空欄の場合、AIが自動で競合LPを検索・分析します
+                ※ 空欄の場合、AIが自動で競合サイトを検索・分析します
               </p>
             </div>
 
@@ -615,7 +615,7 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
 
             {/* 送信ボタン */}
             <Button type="submit" className="w-full py-4 text-lg font-bold">
-              LPデザインガイドラインを生成
+              デザインガイドラインを生成
             </Button>
           </form>
         ) : (
@@ -637,10 +637,10 @@ export function SmartAnalysisForm({ onGuidelineGenerated }: Props) {
             </div>
 
             <h3 className="text-xl font-bold text-center text-slate-800 mb-3">
-              LPデザインガイドラインを作成中...
+              デザインガイドラインを作成中...
             </h3>
             <p className="text-slate-500 text-center text-sm mb-6">
-              入力情報をもとに、CVR向上に最適なLPデザインガイドラインを生成しています
+              入力されたサービス/商品情報をもとに、効果的なLPを作成するためのデザインガイドラインを生成しています
             </p>
 
             {/* プログレスバー */}

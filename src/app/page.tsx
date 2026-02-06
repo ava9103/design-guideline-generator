@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SmartAnalysisForm } from '@/components/forms/SmartAnalysisForm';
 import { GuidelineReport } from '@/components/report/GuidelineReport';
@@ -15,6 +15,18 @@ export default function Home() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // GuidelineReportからの共有イベントをリッスン
+  useEffect(() => {
+    const handleOpenShareModal = () => {
+      handleShare();
+    };
+
+    window.addEventListener('openShareModal', handleOpenShareModal);
+    return () => {
+      window.removeEventListener('openShareModal', handleOpenShareModal);
+    };
+  }, [guideline]);
 
   const handleGuidelineGenerated = (newGuideline: DesignGuideline) => {
     // 履歴に保存

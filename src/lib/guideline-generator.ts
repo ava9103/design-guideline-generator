@@ -66,7 +66,8 @@ async function generateLayer1Goals(
     .replace('{competitorSummary}', competitorSummary)
     .replace('{conventions}', designTrend?.conventions?.commonPatterns?.join('、') || '不明')
     .replace('{opportunities}', designTrend?.opportunities?.differentiationAngles?.join('、') || '不明')
-    .replace('{antiPatterns}', designTrend?.antiPatterns?.join('、') || '不明');
+    .replace('{antiPatterns}', designTrend?.antiPatterns?.join('、') || '不明')
+    .replace('{additionalInfo}', context.additionalInfo || '特になし');
 
   const response = await callClaude(prompt, {
     maxTokens: 3000,
@@ -110,7 +111,8 @@ async function generateLayer2Concept(
     .replace('{industry}', context.industry || businessModel?.industry || '不明')
     .replace('{targetAudience}', persona?.primary.name || context.targetAudience || '不明')
     .replace('{conversionGoal}', businessModel?.conversionGoal || '不明')
-    .replace('{competitorDesignTones}', competitorDesignTones);
+    .replace('{competitorDesignTones}', competitorDesignTones)
+    .replace('{additionalInfo}', context.additionalInfo || '特になし');
 
   const response = await callClaude(prompt, {
     maxTokens: 2500,
@@ -210,7 +212,8 @@ ${industrySpecificGuide}
     .replace('{industry}', industry || '不明')
     .replace('{targetAudience}', persona?.primary.name || context.targetAudience || '不明')
     .replace('{competitorDesigns}', competitorDesigns)
-    .replace('{industryPreset}', combinedKnowledgeText);
+    .replace('{industryPreset}', combinedKnowledgeText)
+    .replace('{additionalInfo}', context.additionalInfo || '特になし');
 
   const response = await callClaude(prompt, {
     maxTokens: 5000,

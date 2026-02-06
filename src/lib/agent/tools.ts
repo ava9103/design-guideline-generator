@@ -63,7 +63,7 @@ export const AGENT_TOOLS: AgentTool[] = [
   // サイト分析ツール
   {
     name: 'analyze_site',
-    description: 'URLからWebサイトの構造、コンテンツ、デザイン要素を詳細に分析します。対象サイトや競合サイトの分析に使用してください。',
+    description: 'サービス/商品のウェブサイトを分析し、LPを作成するための情報を収集します。サービスの特徴、強み、ターゲット層、提供価値などを把握するために使用してください。',
     parameters: [
       {
         name: 'url',

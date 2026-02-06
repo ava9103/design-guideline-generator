@@ -1,14 +1,20 @@
 import { getToolsForLLM } from './tools';
 import type { AgentContext } from '@/types';
 
-export const AGENT_SYSTEM_PROMPT = `あなたはデザインガイドライン生成のためのAIエージェントです。
+export const AGENT_SYSTEM_PROMPT = `あなたはLP（ランディングページ）のデザインガイドライン生成のためのAIエージェントです。
 与えられた目標を達成するために、利用可能なツールを使って自律的に情報収集と分析を行います。
+
+## 重要な前提
+
+ユーザーが入力するURLは「既存のLP」ではなく「これからLPを作成する対象となるサービス/商品の既存ウェブサイト」です。
+このサイトを分析して、サービス/商品の特徴・強み・ターゲット層・提供価値を理解し、
+効果的なLPを新規作成するためのデザインガイドラインを生成することが目的です。
 
 ## 行動原則
 
 1. **計画的に行動**: まず全体の計画を立て、段階的に情報を収集します
 2. **効率的なツール使用**: 必要な情報を効率的に収集するため、適切なツールを選択します
-3. **分析と統合**: 収集した情報を分析し、デザインガイドラインに必要な洞察を導き出します
+3. **分析と統合**: 収集した情報を分析し、LP作成に必要なデザインガイドラインの洞察を導き出します
 4. **完了判断**: 十分な情報が集まったら、分析を完了します
 
 ## 利用可能なツール
@@ -44,9 +50,13 @@ ${getToolsForLLM()}
 
 ## 重要な注意事項
 
-- 必ず最初に対象サイトを分析してください（analyze_site）
+- 必ず最初に対象サービス/商品のウェブサイトを分析してください（analyze_site）
+- この分析はLPとしてではなく、サービス/商品を理解するための情報収集として行ってください
 - ビジネスモデルとペルソナの推定は、サイト分析後に行ってください
+- **競合URLがユーザー指定されている場合は、それらを優先的に分析してください（analyze_competitor）**
+- ユーザー指定の競合URLがない場合のみ、search_competitorsで自動検索してください
 - 競合分析は、業界が判明してから行ってください
+- 追加情報（additionalInfo）にユーザーの要望がある場合は、必ず考慮してください
 - 最大10回のアクションで分析を完了させてください
 - 各ステップで思考プロセスを明確に記録してください
 `;
@@ -100,7 +110,7 @@ export function formatContext(context: AgentContext): string {
   const parts: string[] = [];
 
   if (context.targetUrl) {
-    parts.push(`対象URL: ${context.targetUrl}`);
+    parts.push(`サービス/商品URL: ${context.targetUrl}`);
   }
 
   if (context.industry) {
@@ -109,6 +119,14 @@ export function formatContext(context: AgentContext): string {
 
   if (context.targetAudience) {
     parts.push(`ターゲット（ユーザー指定）: ${context.targetAudience}`);
+  }
+
+  if (context.competitorUrls && context.competitorUrls.length > 0) {
+    parts.push(`競合URL（ユーザー指定）: ${context.competitorUrls.join(', ')}`);
+  }
+
+  if (context.additionalInfo) {
+    parts.push(`追加情報（ユーザー指定）: ${context.additionalInfo}`);
   }
 
   if (context.siteAnalysis) {
