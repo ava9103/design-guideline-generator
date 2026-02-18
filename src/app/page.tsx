@@ -79,6 +79,12 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link href="/lp">
+                <Button variant="ghost" size="sm">
+                  <Sparkles size={16} className="mr-1" />
+                  製品について
+                </Button>
+              </Link>
               <Link href="/history">
                 <Button variant="ghost" size="sm">
                   <History size={16} className="mr-1" />
